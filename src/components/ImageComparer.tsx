@@ -26,36 +26,61 @@ const IMAGE_GAP_PX = 16; // Equivalent to gap-4 (4 * 0.25rem * 16px/rem assumed)
 
 // Helper to convert CM to Feet/Inches string (copied from old ScaleBar)
 const cmToFtIn = (cm: number): string => {
-    if (cm <= 0) return "0' 0\"";
-    const totalInches = cm / CM_PER_INCH;
+    if (cm === 0) return "0' 0\"";
+    const absCm = Math.abs(cm);
+    const totalInches = absCm / CM_PER_INCH;
     const feet = Math.floor(totalInches / INCHES_PER_FOOT);
-    const inches = Math.round(totalInches % INCHES_PER_FOOT);
-    return `${feet}' ${inches}\"`;
+    let inches = Math.round(totalInches % INCHES_PER_FOOT);
+    let adjustedFeet = feet;
+    if (inches === 12) {
+        adjustedFeet += 1;
+        inches = 0;
+    }
+    const sign = cm < 0 ? '-' : '';
+    return `${sign}${adjustedFeet}' ${inches}\"`;
 };
 
-// Function to generate horizontal scale marks
-const generateHorizontalMarks = (maxCm: number) => {
-    if (maxCm <= 0) return []; // Handle edge case
+// Function to generate horizontal scale marks with dynamic negative part
+// Returns marks and the actual minimum CM value generated
+const generateHorizontalMarks = (maxCm: number): { marks: any[], minCm: number } => {
+    if (maxCm <= 0) { 
+        // Handle case where max is 0 or negative - maybe just show 0 and -step?
+        const step = 10; // Arbitrary step for negative-only scale
+        return { 
+            marks: [
+                { valueCm: 0, labelCm: '0 cm', labelFtIn: cmToFtIn(0) },
+                { valueCm: -step, labelCm: `-${step} cm`, labelFtIn: cmToFtIn(-step) },
+            ],
+            minCm: -step
+        };
+    } 
 
-    const numberOfIntervals = 10;
-    const exactStep = maxCm / numberOfIntervals;
+    const numberOfPositiveIntervals = 10;
+    const exactStep = maxCm / numberOfPositiveIntervals;
+    const numberOfNegativeIntervals = 1; // Changed from 2 to 1
 
     const marks = [];
-    // Generate exactly 11 marks (0 + 10 intervals)
-    for (let i = 0; i <= numberOfIntervals; i++) {
+    let minCmGenerated = 0;
+
+    // Generate marks from negative up to positive
+    for (let i = -numberOfNegativeIntervals; i <= numberOfPositiveIntervals; i++) {
         const currentCm = i * exactStep;
         marks.push({
             valueCm: currentCm,
-            // Round labels for display, but use exact valueCm for positioning
-            labelCm: `${Math.round(currentCm)} cm`, 
+            labelCm: `${Math.round(currentCm)} cm`,
             labelFtIn: cmToFtIn(currentCm),
         });
+        if (i < 0) {
+             minCmGenerated = Math.min(minCmGenerated, currentCm);
+        }
     }
-    
-    // The loop now guarantees the 0 and maxCm marks are included.
-    // Removed explicit add for 0 and maxCm
 
-    return marks;
+    // Ensure unique marks (e.g., if step is very small, rounding might create duplicates)
+    const uniqueMarks = marks.filter((mark, index, self) => 
+        index === self.findIndex((m) => m.valueCm === mark.valueCm)
+    );
+
+    return { marks: uniqueMarks, minCm: minCmGenerated };
 };
 
 const ImageComparer: React.FC<ImageComparerProps> = ({
@@ -90,44 +115,48 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       : 0;
   const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : DEFAULT_SCALE_MAX_CM;
 
-  // Calculate the initial effective top of the scale for rendering, including padding
+  // --- Generate Marks FIRST to find the actual minimum CM required ---
+  const { marks: preliminaryMarks, minCm: actualMinCm } = generateHorizontalMarks(actualMaxCm);
+  
+  // --- Now calculate scales based on actualMinCm and actualMaxCm ---
   const initialScaleTopCm = actualMaxCm * SCALE_TOP_PADDING_FACTOR;
+  const initialScaleBottomCm = actualMinCm; // Use the dynamic minimum
 
-  // Calculate initial vertical scale factor
-  const initialScaleCmPerPixel = (internalCanvasHeightPx > 0 && initialScaleTopCm > 0) 
-      ? initialScaleTopCm / internalCanvasHeightPx 
+  // ... Calculate initialPixelsPerCm (based on actual min/max range) ...
+  const initialTotalRangeCm = initialScaleTopCm - initialScaleBottomCm;
+  const initialPixelsPerCm = internalCanvasHeightPx > 0 && initialTotalRangeCm > 0 
+      ? internalCanvasHeightPx / initialTotalRangeCm 
       : 0;
 
-  // Calculate ideal dimensions based on initial vertical scale
+  // ... Calculate ideal dimensions and horizontalScaleFactor ...
   let totalIdealWidth = 0;
   const imageDimensions = images.map(image => {
-    const idealHeight = initialScaleCmPerPixel > 0 ? (image.heightCm || 1) / initialScaleCmPerPixel : 0;
-    const idealWidth = idealHeight * (image.aspectRatio || 1);
-    totalIdealWidth += idealWidth;
-    return { id: image.id, idealHeight, idealWidth };
+      const idealHeightPx = (image.heightCm || 1) * initialPixelsPerCm;
+      const idealWidthPx = idealHeightPx * (image.aspectRatio || 1);
+      totalIdealWidth += idealWidthPx;
+      return { id: image.id, idealHeight: idealHeightPx, idealWidth: idealWidthPx };
   });
-
-  // Add gaps to total width
-  if (images.length > 1) {
-    totalIdealWidth += (images.length - 1) * IMAGE_GAP_PX;
-  }
-
-  // Calculate horizontal scaling factor needed to fit width
+  if (images.length > 1) { totalIdealWidth += (images.length - 1) * IMAGE_GAP_PX; }
   const horizontalScaleFactor = (imageContainerWidthPx > 0 && totalIdealWidth > imageContainerWidthPx)
-    ? imageContainerWidthPx / totalIdealWidth
-    : 1;
+      ? imageContainerWidthPx / totalIdealWidth : 1;
 
-  // ---- Adjust scale for lines based on horizontal scaling ----
-  const adjustedScaleTopCm = initialScaleTopCm / horizontalScaleFactor; // Effective top CM value after scaling
-  const adjustedScaleCmPerPixel = (internalCanvasHeightPx > 0 && adjustedScaleTopCm > 0)
-      ? adjustedScaleTopCm / internalCanvasHeightPx
-      : 0; // Scale factor for positioning lines
-  const maxCmForLines = actualMaxCm / horizontalScaleFactor; // Max cm value for generating line labels
+  // Adjust scale boundaries based on horizontal scaling and actual min/max
+  const adjustedScaleTopCm = initialScaleTopCm / horizontalScaleFactor;
+  const adjustedScaleBottomCm = initialScaleBottomCm / horizontalScaleFactor;
+  const adjustedTotalRangeCm = adjustedScaleTopCm - adjustedScaleBottomCm;
+  const adjustedPixelsPerCm = internalCanvasHeightPx > 0 && adjustedTotalRangeCm > 0 
+      ? internalCanvasHeightPx / adjustedTotalRangeCm 
+      : 0;
 
-  // Generate horizontal marks based on the *adjusted* scale range
-  const horizontalMarks = generateHorizontalMarks(maxCmForLines);
+  // Recalculate marks based on the FINAL adjusted scale range if needed?
+  // No, use preliminary marks but position them with final adjusted scale.
+  const horizontalMarks = preliminaryMarks; 
 
-  // ---- Calculate final dynamic gap ----
+  // Calculate padding needed to align image bottom with 0cm line
+  const zeroLineOffsetPx = adjustedPixelsPerCm > 0 
+      ? Math.max(0, (0 - adjustedScaleBottomCm) * adjustedPixelsPerCm) 
+      : 0;
+
   const finalGap = Math.max(0, IMAGE_GAP_PX * horizontalScaleFactor);
 
   return (
@@ -141,25 +170,26 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
           {/* Main image container - Remove gap class, add inline gap style */}
           <div
             ref={imageContainerRef}
-            className="relative flex-grow flex items-end overflow-hidden justify-center" // Removed gap-4
+            className="relative flex-grow flex items-end overflow-hidden justify-center"
             style={{ 
                 height: `${internalCanvasHeightPx}px`, 
-                gap: `${finalGap}px` // Apply dynamic gap
+                gap: `${finalGap}px`,
+                paddingBottom: `${zeroLineOffsetPx}px` // Padding remains based on adjusted scale
             }}
           >
-            {/* Render Horizontal Measurement Lines - Position based on adjusted scale */}
+            {/* Render Horizontal Measurement Lines - Use adjusted scale */}
             {horizontalMarks.map((mark) => {
-                // Use adjusted scale to calculate position
-                const positionBottom = adjustedScaleCmPerPixel > 0 ? mark.valueCm / adjustedScaleCmPerPixel : 0;
-                // Clip marks outside the actual canvas height
-                if (positionBottom > internalCanvasHeightPx && mark.valueCm !== 0) return null;
-                const clampedPositionBottom = Math.max(0, positionBottom);
-
+                // Position relative to the adjusted bottom 
+                const positionBottom = adjustedPixelsPerCm > 0 
+                    ? (mark.valueCm - adjustedScaleBottomCm) * adjustedPixelsPerCm 
+                    : 0;
+                if (positionBottom < 0 || positionBottom > internalCanvasHeightPx) return null; 
+                
                 return (
                     <div
                       key={`mark-${mark.valueCm}`}
                       className="absolute left-0 right-0 pointer-events-none"
-                      style={{ bottom: `${clampedPositionBottom}px` }}
+                      style={{ bottom: `${positionBottom}px` }}
                     >
                         {/* Line (removed min-w-full) */}
                         <div className="h-px bg-gray-400 dark:bg-gray-600 opacity-50"></div>
@@ -174,12 +204,11 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                 );
             })}
 
-            {/* Render Images with final scaled dimensions */}
+            {/* Render Images - Calculation remains based on final dimensions */}
             {images.map((image) => {
               const dims = imageDimensions.find(d => d.id === image.id);
               if (!dims) return null; 
 
-              // Apply horizontal scaling factor to ideal dimensions
               const finalHeight = Math.max(1, dims.idealHeight * horizontalScaleFactor);
               const finalWidth = Math.max(1, dims.idealWidth * horizontalScaleFactor);
 
