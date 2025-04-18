@@ -1,8 +1,9 @@
 'use client'; // Required for future state management and interactions
 
 import React, { useState, useMemo, useCallback, ChangeEvent } from 'react';
-import ControlPanel from '@/components/ControlPanel';
 import ImageComparer from '@/components/ImageComparer';
+import AddSection from '@/components/AddSection';
+import EditSection from '@/components/EditSection';
 
 // Constants
 const DEFAULT_HEIGHT_CM = 180; // Default height for new images - Changed to 180
@@ -45,6 +46,7 @@ interface ManagedImage {
 
 export default function Home() {
   const [images, setImages] = useState<ManagedImage[]>([]);
+  const [activeSection, setActiveSection] = useState<'add' | 'edit' | null>(null); // State for active section
 
   // Add image callback - include default offsets
   const handleAddImage = useCallback((file: File) => {
@@ -191,143 +193,42 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-center">HeightCompare</h1>
       </header>
 
-      {/* Control Panel - Simplified, as it no longer takes height input */}
-      {/* Assuming ControlPanel was modified to just call onAddImage(file) */}
-      <section className="sticky top-[69px] z-10 p-2 bg-gray-50 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-700">
-         <ControlPanel onAddImage={handleAddImage} /> 
-         {/* We might want a way to remove images from ControlPanel too, 
-             or add a separate area for listing/removing images */}
-      </section>
-
-      {/* Image Comparer - Pass the full images state (now includes offset) */}
+      {/* Image Comparer */}
       <main className="flex-grow flex justify-center items-center p-4 overflow-hidden">
          <ImageComparer images={images} /> 
       </main>
 
-      {/* Adjustment Controls Section - Updated Height Inputs */}
-      {images.length > 0 && (
-        <section className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850">
-          <h3 className="text-lg font-semibold mb-3 text-center">Adjust Images</h3>
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-6">
-            {images.map((image) => {
-               // Calculate ft/in values for display
-               const { feet, inches } = cmToFtInObj(image.heightCm);
-               
-               return (
-                  <div key={`control-${image.id}`} className="flex flex-col items-center w-56 p-3 border rounded bg-white dark:bg-gray-800 shadow">
-                    <span
-                      className="text-sm font-medium mb-3 truncate w-full text-center"
-                      title={image.name}
-                    >
-                      {image.name}
-                    </span>
-                    
-                    {/* --- Name Input --- */}
-                    <div className="w-full mb-2 px-1">
-                      <label htmlFor={`name-input-${image.id}`} className="block text-xs font-medium mb-1">Name</label>
-                      <input 
-                        id={`name-input-${image.id}`} 
-                        type="text" 
-                        value={image.name}
-                        onChange={(e) => handleSetName(image.id, e.target.value)} 
-                        placeholder="Optional Name"
-                        className="w-full p-1 border rounded text-center text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                        aria-label={`Name for ${image.name}`}
-                      />
-                    </div>
+      {/* Container for Add/Edit Sections */}
+      <div className="flex flex-col md:flex-row border-t border-gray-200 dark:border-gray-700">
+        {/* Add Section */}
+        <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700">
+          <AddSection 
+            onAddImage={handleAddImage} 
+            isActive={activeSection === 'add'}
+            onToggle={() => setActiveSection(activeSection === 'add' ? null : 'add')}
+          />
+        </div>
 
-                    {/* --- Height Controls (CM and Separate Ft/In) --- */}
-                    <div className="w-full mb-2 px-1">
-                      <label htmlFor={`height-cm-${image.id}`} className="block text-xs font-medium mb-1">Height (cm)</label>
-                      <input 
-                        id={`height-cm-${image.id}`} 
-                        type="number" 
-                        value={Math.round(image.heightCm * 10) / 10} // Display CM rounded to 1 decimal
-                        onChange={(e) => handleSetHeight(image.id, parseFloat(e.target.value) || 0)} 
-                        min="1" 
-                        step="1" // Set step to 1 cm
-                        className="w-full p-1 border rounded text-center text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                        aria-label={`Height (cm) for ${image.name}`}
-                      />
-                    </div>
-                    {/* Feet/Inches Inputs */}
-                    <div className="flex w-full gap-2 mb-3 px-1">
-                        <div className="flex-1">
-                            <label htmlFor={`height-ft-${image.id}`} className="block text-xs font-medium mb-1">Feet</label>
-                            <input 
-                                id={`height-ft-${image.id}`} 
-                                type="number" 
-                                value={feet} // Use derived value
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleFtInchChange(image.id, 'ft', e.target.value)} 
-                                min="0" 
-                                step="1"
-                                className="w-full p-1 border rounded text-center text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                                aria-label={`Feet for ${image.name}`}
-                            />
-                        </div>
-                         <div className="flex-1">
-                            <label htmlFor={`height-in-${image.id}`} className="block text-xs font-medium mb-1">Inches</label>
-                            <input 
-                                id={`height-in-${image.id}`} 
-                                type="number" 
-                                value={inches} // Use derived value
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleFtInchChange(image.id, 'in', e.target.value)} 
-                                min="0" 
-                                max="11.9" // Allow up to 11.9 
-                                step="0.1" // Allow decimal inches
-                                className="w-full p-1 border rounded text-center text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                                aria-label={`Inches for ${image.name}`}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Vertical Offset Slider */}
-                    <div className="w-full mb-2 px-1">
-                      <label htmlFor={`v-offset-slider-${image.id}`} className="flex justify-between text-xs font-medium mb-1">
-                        <span>V Offset:</span>
-                        <span>{image.verticalOffsetCm} cm</span>
-                      </label>
-                      <input
-                        id={`v-offset-slider-${image.id}`}
-                        type="range"
-                        min={OFFSET_MIN_CM}
-                        max={OFFSET_MAX_CM}
-                        step={dynamicShiftStepCm}
-                        value={image.verticalOffsetCm}
-                        onChange={(e) => handleSetVerticalOffset(image.id, parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                        title={`Vertical Offset: ${image.verticalOffsetCm}cm (Step: ${dynamicShiftStepCm}cm)`}
-                      />
-                    </div>
-                    {/* Horizontal Offset Slider */}
-                    <div className="w-full px-1">
-                      <label htmlFor={`h-offset-slider-${image.id}`} className="flex justify-between text-xs font-medium mb-1">
-                        <span>H Offset:</span>
-                        <span>{image.horizontalOffsetCm} cm</span>
-                      </label>
-                      <input
-                        id={`h-offset-slider-${image.id}`}
-                        type="range"
-                        min={OFFSET_MIN_CM}
-                        max={OFFSET_MAX_CM}
-                        step={dynamicShiftStepCm}
-                        value={image.horizontalOffsetCm}
-                        onChange={(e) => handleSetHorizontalOffset(image.id, parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                        title={`Horizontal Offset: ${image.horizontalOffsetCm}cm (Step: ${dynamicShiftStepCm}cm)`}
-                      />
-                    </div>
-
-                    {/* Remove Button */}
-                    <button onClick={() => handleRemoveImage(image.id)} className="mt-3 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                      Remove
-                    </button>
-                  </div>
-               );
-            })}
-          </div>
-        </section>
-      )}
+        {/* Edit Section */}
+        <div className="w-full md:w-1/2">
+          <EditSection 
+            images={images}
+            handleRemoveImage={handleRemoveImage}
+            handleSetHeight={handleSetHeight}
+            handleFtInchChange={handleFtInchChange}
+            handleSetVerticalOffset={handleSetVerticalOffset}
+            handleSetHorizontalOffset={handleSetHorizontalOffset}
+            handleSetName={handleSetName}
+            cmToFtInObj={cmToFtInObj}
+            dynamicShiftStepCm={dynamicShiftStepCm}
+            OFFSET_MIN_CM={OFFSET_MIN_CM}
+            OFFSET_MAX_CM={OFFSET_MAX_CM}
+            isActive={activeSection === 'edit'}
+            onToggle={() => setActiveSection(activeSection === 'edit' ? null : 'edit')}
+            hasImages={images.length > 0}
+          />
+        </div>
+      </div>
 
       <footer className="p-4 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 text-center text-sm mt-auto">
         HeightCompare App © {new Date().getFullYear()}
