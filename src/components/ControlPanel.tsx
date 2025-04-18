@@ -25,6 +25,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onAddImage }) => {
 
     // Reset form after adding
     setSelectedFile(null);
+    // Reset file input visually
     const fileInput = document.getElementById('imageUpload') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   };

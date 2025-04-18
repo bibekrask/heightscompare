@@ -276,20 +276,34 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                  // Wrapper takes flex item role, transform applied here
                  <div
                     key={image.id}
-                    className="relative z-10 flex flex-col items-center" // Use flex-col for potential future labels
+                    className="relative z-10" // Removed flex properties
                     style={{
-                        transform: `translate(${offsetXpx}px, ${offsetYpx}px)`
-                        // We don't set justify-end here, relying on parent items-end
+                        transform: `translate(${offsetXpx}px, ${offsetYpx}px)`,
+                        // Set explicit dimensions matching the image
+                        width: `${finalWidth}px`,
+                        height: `${finalHeight}px` 
                     }}
                  >
+                  {/* Display the image name: Position absolutely above the container */}
+                  {image.name && (
+                    <span 
+                      className="absolute bottom-full left-1/2 transform -translate-x-1/2 pb-1 text-center text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+                      // bottom-full places it above the div's top edge
+                      // left-1/2 and -translate-x-1/2 center it horizontally
+                      // pb-1 adds a little padding below the name
+                    >
+                      {/* Display name and height */}
+                      {image.name} ({Math.round(image.heightCm)} cm / {cmToFtIn(image.heightCm)})
+                    </span>
+                  )}
                   {finalHeight > 1 && (
                       <img
                         src={image.src}
                         alt={image.name}
-                        className="block object-contain" // Removed object-bottom as transform handles Y
+                        className="block object-contain" // Image fills the container
                         style={{
-                            height: `${finalHeight}px`,
-                            width: `${finalWidth}px`
+                            height: '100%', // Fill container height
+                            width: '100%'   // Fill container width
                         }}
                       />
                    )}

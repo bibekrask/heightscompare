@@ -5,7 +5,7 @@ import ControlPanel from '@/components/ControlPanel';
 import ImageComparer from '@/components/ImageComparer';
 
 // Constants
-const DEFAULT_HEIGHT_CM = 180; // Changed default height to 180 cm
+const DEFAULT_HEIGHT_CM = 180; // Default height for new images - Changed to 180
 const MAX_IMAGES = 50; // Max number of images allowed - Changed to 50
 const OFFSET_MIN_CM = -100;
 const OFFSET_MAX_CM = 100;
@@ -161,6 +161,15 @@ export default function Home() {
     );
   }, []);
 
+  // Add callback for setting image name
+  const handleSetName = useCallback((idToUpdate: string, newName: string) => {
+    setImages((prevImages) =>
+      prevImages.map((img) =>
+        img.id === idToUpdate ? { ...img, name: newName } : img
+      )
+    );
+  }, []);
+
   // --- Calculate Scale for Dynamic Step ---
   const actualMaxCm = useMemo(() => {
       const maxImageHeight = images.length > 0
@@ -213,6 +222,20 @@ export default function Home() {
                       {image.name}
                     </span>
                     
+                    {/* --- Name Input --- */}
+                    <div className="w-full mb-2 px-1">
+                      <label htmlFor={`name-input-${image.id}`} className="block text-xs font-medium mb-1">Name</label>
+                      <input 
+                        id={`name-input-${image.id}`} 
+                        type="text" 
+                        value={image.name}
+                        onChange={(e) => handleSetName(image.id, e.target.value)} 
+                        placeholder="Optional Name"
+                        className="w-full p-1 border rounded text-center text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
+                        aria-label={`Name for ${image.name}`}
+                      />
+                    </div>
+
                     {/* --- Height Controls (CM and Separate Ft/In) --- */}
                     <div className="w-full mb-2 px-1">
                       <label htmlFor={`height-cm-${image.id}`} className="block text-xs font-medium mb-1">Height (cm)</label>
