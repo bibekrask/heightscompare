@@ -48,17 +48,20 @@ const cmToFtIn = (cm: number): string => {
 };
 
 // Function to generate horizontal scale marks (Major and Minor)
-const generateHorizontalMarks = (maxCm: number): { majorMarks: any[], minorMarks: any[], minCm: number } => {
-    const positiveMax = Math.max(0, maxCm);
-    const majorStep = positiveMax > epsilon ? positiveMax / MAJOR_INTERVALS : 10;
+// Accepts the desired top of the scale, not just max content height
+const generateHorizontalMarks = (scaleTopCm: number): { majorMarks: any[], minorMarks: any[], minCm: number } => {
+    // Base step calculation on the visible positive range, or default if scaleTopCm is 0 or negative
+    const positiveMaxForStep = Math.max(epsilon, scaleTopCm); 
+    const majorStep = positiveMaxForStep / MAJOR_INTERVALS;
     const minorStep = majorStep / MINOR_INTERVALS_PER_MAJOR;
+    // minCmGenerated still based on majorStep intervals below 0
     const minCmGenerated = -NEGATIVE_MAJOR_INTERVALS * majorStep;
 
     const majorMarks: any[] = [];
     const minorMarks: any[] = [];
 
-    // Determine the effective maximum for the loop to avoid missing the last major mark
-    const loopMax = maxCm + epsilon; // Include maxCm itself
+    // Determine the effective maximum for the loop based on the desired scale top
+    const loopMax = scaleTopCm + epsilon;
 
     for (let currentCm = minCmGenerated; currentCm <= loopMax; currentCm += minorStep) {
         // Check if currentCm is close to a multiple of majorStep or close to 0
@@ -66,39 +69,39 @@ const generateHorizontalMarks = (maxCm: number): { majorMarks: any[], minorMarks
             Math.abs(currentCm % majorStep) < epsilon ||                  
             Math.abs(majorStep - (currentCm % majorStep)) < epsilon || 
             Math.abs(currentCm) < epsilon ||                           
-            Math.abs(currentCm - maxCm) < epsilon;                     
+            Math.abs(currentCm - scaleTopCm) < epsilon; // Check against scaleTopCm now
 
-        // Refined check: Is it *exactly* on a major step or the max value?
+        // Refined check: Is it *exactly* on a major step or the scale top value?
         let isMajor = false;
         if (isMajorCandidate) {
-             // Check against integer multiples of majorStep
-             for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS; j++) {
+             for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS + 1; j++) { // Extend check slightly beyond major intervals if needed
                  if (Math.abs(currentCm - (j * majorStep)) < epsilon) {
                      isMajor = true;
                      break;
                  }
              }
-             // Explicitly check against maxCm
-             if (!isMajor && Math.abs(currentCm - maxCm) < epsilon) {
+             // Explicitly check against scaleTopCm
+             if (!isMajor && Math.abs(currentCm - scaleTopCm) < epsilon) {
                  isMajor = true;
              }
         }
        
-        // Avoid adding minor marks extremely close to major marks
+        // Avoid adding minor marks extremely close to major marks (check against scaleTopCm too)
         let tooCloseToMajor = false;
         if (!isMajor) {
-            for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS; j++) {
+            for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS + 1; j++) {
                 if (Math.abs(currentCm - (j * majorStep)) < minorStep / 2) {
                     tooCloseToMajor = true;
                     break;
                 }
             }
-             if (!tooCloseToMajor && Math.abs(currentCm - maxCm) < minorStep / 2){ 
+             if (!tooCloseToMajor && Math.abs(currentCm - scaleTopCm) < minorStep / 2){ 
                 tooCloseToMajor = true;
              }
         }
 
         if (isMajor) {
+             // Avoid duplicates
              if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
                 majorMarks.push({
                     valueCm: currentCm,
@@ -106,19 +109,15 @@ const generateHorizontalMarks = (maxCm: number): { majorMarks: any[], minorMarks
                     labelFtIn: cmToFtIn(currentCm),
                 });
              }
-        } else if (!tooCloseToMajor) {
-            minorMarks.push({ valueCm: currentCm });
-        }
+        } 
+        // We are removing minor marks anyway, so commenting this out
+        // else if (!tooCloseToMajor) {
+        //    minorMarks.push({ valueCm: currentCm });
+        // }
     }
 
-     // Ensure maxCm mark is included if slightly missed by loop (should be covered now but keep as safeguard)
-     if (majorMarks.findIndex(m => Math.abs(m.valueCm - maxCm) < epsilon) === -1 && maxCm > minCmGenerated + epsilon) {
-        majorMarks.push({
-            valueCm: maxCm,
-            labelCm: `${Math.round(maxCm)} cm`,
-            labelFtIn: cmToFtIn(maxCm),
-        });
-     }
+     // Remove the manual check for maxCm, loop should cover scaleTopCm
+     // if (majorMarks.findIndex(m => Math.abs(m.valueCm - maxCm) < epsilon) === -1 && maxCm > minCmGenerated + epsilon) { ... }
 
      majorMarks.sort((a, b) => a.valueCm - b.valueCm);
 
@@ -157,15 +156,20 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       : 0;
   const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : DEFAULT_SCALE_MAX_CM;
 
-  // --- Generate Marks FIRST to find the actual minimum CM required ---
-  const { majorMarks: preliminaryMajorMarks, minorMarks: preliminaryMinorMarks, minCm: actualMinCm } = generateHorizontalMarks(actualMaxCm);
-  
-  // --- Now calculate scales based on actualMinCm and actualMaxCm ---
-  const initialScaleTopCm = actualMaxCm + SCALE_TOP_MARGIN_CM;
-  const initialScaleBottomCm = actualMinCm - SCALE_BOTTOM_MARGIN_CM;
+  // Calculate the desired top and bottom for the scale
+  const initialScaleTopCm = actualMaxCm * 1.1;
+  const initialScaleBottomCm = -NEGATIVE_MAJOR_INTERVALS * (Math.max(epsilon, initialScaleTopCm) / MAJOR_INTERVALS) - SCALE_BOTTOM_MARGIN_CM; // Calculate initial bottom based on top
 
-  // ... Calculate initialPixelsPerCm (based on NEW actual min/max range) ...
-  const initialTotalRangeCm = initialScaleTopCm - initialScaleBottomCm;
+  // --- Generate Marks based on the calculated scale top --- 
+  const { majorMarks: preliminaryMajorMarks, minorMarks: preliminaryMinorMarks, minCm: actualMinCm } = generateHorizontalMarks(initialScaleTopCm);
+  
+  // --- Now calculate scales based on the generated marks min and calculated top ---
+  // Use actualMinCm from generated marks for bottom, keep calculated top
+  const finalScaleTopCm = initialScaleTopCm;
+  const finalScaleBottomCm = actualMinCm - SCALE_BOTTOM_MARGIN_CM;
+  
+  // ... Calculate initialPixelsPerCm based on final scale range ...
+  const initialTotalRangeCm = finalScaleTopCm - finalScaleBottomCm;
   const initialPixelsPerCm = internalCanvasHeightPx > 0 && initialTotalRangeCm > 0 
       ? internalCanvasHeightPx / initialTotalRangeCm 
       : 0;
@@ -183,8 +187,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       ? imageContainerWidthPx / totalIdealWidth : 1;
 
   // Adjust scale boundaries based on horizontal scaling and actual min/max
-  const adjustedScaleTopCm = initialScaleTopCm / horizontalScaleFactor;
-  const adjustedScaleBottomCm = initialScaleBottomCm / horizontalScaleFactor;
+  const adjustedScaleTopCm = finalScaleTopCm / horizontalScaleFactor;
+  const adjustedScaleBottomCm = finalScaleBottomCm / horizontalScaleFactor;
   const adjustedTotalRangeCm = adjustedScaleTopCm - adjustedScaleBottomCm;
   const adjustedPixelsPerCm = internalCanvasHeightPx > 0 && adjustedTotalRangeCm > 0 
       ? internalCanvasHeightPx / adjustedTotalRangeCm 
@@ -205,7 +209,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   return (
     <div
       ref={wrapperRef}
-      className="relative flex bg-gray-100 dark:bg-gray-900 rounded-lg shadow overflow-hidden"
+      className="relative flex bg-gray-100 dark:bg-gray-900 rounded-lg shadow overflow-hidden pt-4"
       style={{ height: containerHeight, width: containerWidth }}
     >
       {internalCanvasHeightPx > 0 && (

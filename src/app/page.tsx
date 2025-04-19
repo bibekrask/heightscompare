@@ -178,7 +178,8 @@ export default function Home() {
         ? Math.max(1, ...images.map(img => img.heightCm || 0))
         : 0;
       const defaultComparerScale = 170;
-       return maxImageHeight > 0 ? maxImageHeight : defaultComparerScale;
+       // Adjust the maximum scale to be 30% more than the tallest image
+       return maxImageHeight > 0 ? maxImageHeight * 1.3 : defaultComparerScale;
   }, [images]);
 
   // Calculate dynamic step size (1% of max height, min 0.1)
