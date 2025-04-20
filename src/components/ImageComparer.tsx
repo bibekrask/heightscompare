@@ -1,339 +1,291 @@
 'use client';
 
 import React, { useRef, useState, useLayoutEffect } from 'react';
-// import ScaleBar from './ScaleBar'; // Removed ScaleBar import
 
-interface ImageInfo {
-  id: string | number; // Unique identifier for key prop
-  src: string;
+// --- Interfaces --- 
+// Match the interface used in page.tsx
+interface ManagedImage {
+  id: string;
   name: string;
-  heightCm: number; // Re-added heightCm to input prop
-  aspectRatio: number; // Expect aspectRatio
-  verticalOffsetCm: number; // Expect vertical offset
-  horizontalOffsetCm: number; // Expect horizontal offset
+  src: string; 
+  heightCm: number;
+  aspectRatio: number; 
+  verticalOffsetCm: number; 
+  horizontalOffsetCm: number; 
+  color: string;
+  gender: 'male' | 'female';
 }
 
 interface ImageComparerProps {
-  images: ImageInfo[]; // Expects images with heightCm
-  containerHeight?: string;
-  containerWidth?: string;
+  images: ManagedImage[];
 }
 
-// const DEFAULT_HEIGHT_CM = 100; // No longer needed here
-const DEFAULT_SCALE_MAX_CM = 170; // Default scale height when no images
-const SCALE_TOP_MARGIN_CM = 5; // Desired margin above highest mark in CM
+// --- Constants --- 
+const SCALE_TOP_FACTOR = 1.1; // Show 10% margin above highest content
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
-const IMAGE_GAP_PX = 16; // Equivalent to gap-4 (4 * 0.25rem * 16px/rem assumed)
-const MAJOR_INTERVALS = 10; // Number of intervals for major lines (above 0)
-const MINOR_INTERVALS_PER_MAJOR = 10; // Subdivisions between major lines
+const MAJOR_INTERVALS = 10; // Number of intervals for major lines (e.g., every 10% of range)
 const NEGATIVE_MAJOR_INTERVALS = 1; // How many major steps below 0
-const SCALE_BOTTOM_MARGIN_CM = 5; // Desired margin below lowest mark in CM
-const epsilon = 1e-6; // Small value for floating point comparisons
+const LABEL_WIDTH_PX = 60; // Approx width for side labels (adjust as needed)
+const FIGURE_LABEL_OFFSET_Y = -10; // Pixels above figure head for label
+const epsilon = 1e-6;
 
-// Helper to convert CM to Feet/Inches string (copied from old ScaleBar)
+// --- Helper Functions (cmToFtIn, cmToCmLabel, generateHorizontalMarks can be adapted) ---
 const cmToFtIn = (cm: number): string => {
-    if (cm === 0) return "0' 0\"";
+    if (Math.abs(cm) < epsilon) return "0\' 0\"";
     const absCm = Math.abs(cm);
     const totalInches = absCm / CM_PER_INCH;
     const feet = Math.floor(totalInches / INCHES_PER_FOOT);
-    let inches = Math.round(totalInches % INCHES_PER_FOOT);
+    // Match screenshot format (e.g., 5' 10.46") - round to 2 decimal places for inches?
+    let inches = totalInches % INCHES_PER_FOOT;
     let adjustedFeet = feet;
-    if (inches === 12) {
+    if (Math.abs(inches - 12) < epsilon / 100) { // Check closer to 12
         adjustedFeet += 1;
         inches = 0;
     }
     const sign = cm < 0 ? '-' : '';
-    return `${sign}${adjustedFeet}' ${inches}\"`;
+    // Show inches with more precision like screenshot
+    return `${sign}${adjustedFeet}\' ${inches.toFixed(2)}\"`; 
 };
 
-// Function to generate horizontal scale marks (Major and Minor)
-// Accepts the desired top of the scale, not just max content height
-const generateHorizontalMarks = (scaleTopCm: number): { majorMarks: any[], minorMarks: any[], minCm: number } => {
-    // Base step calculation on the visible positive range, or default if scaleTopCm is 0 or negative
-    const positiveMaxForStep = Math.max(epsilon, scaleTopCm); 
-    const majorStep = positiveMaxForStep / MAJOR_INTERVALS;
-    const minorStep = majorStep / MINOR_INTERVALS_PER_MAJOR;
-    // minCmGenerated still based on majorStep intervals below 0
-    const minCmGenerated = -NEGATIVE_MAJOR_INTERVALS * majorStep;
+const cmToCmLabel = (cm: number): string => {
+    return `${Math.round(cm)}`; // Just the number for the scale
+};
 
+const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any[] => {
+    const totalRange = scaleTopCm - scaleBottomCm;
+    if (totalRange <= epsilon) return [];
+
+    // Determine step based on the positive range, ensuring reasonable steps
+    const positiveRange = Math.max(epsilon, scaleTopCm);
+    let majorStep = positiveRange / MAJOR_INTERVALS;
+    // Adjust step to be a 'nicer' number if desired (e.g., multiple of 10, 5, 2)
+    // Simple approach: Use the calculated step
+    
     const majorMarks: any[] = [];
-    const minorMarks: any[] = [];
+    const startMarkValue = Math.floor(scaleBottomCm / majorStep) * majorStep;
+    const endMarkValue = scaleTopCm + epsilon;
 
-    // Determine the effective maximum for the loop based on the desired scale top
-    const loopMax = scaleTopCm + epsilon;
-
-    for (let currentCm = minCmGenerated; currentCm <= loopMax; currentCm += minorStep) {
-        // Check if currentCm is close to a multiple of majorStep or close to 0
-        const isMajorCandidate = 
-            Math.abs(currentCm % majorStep) < epsilon ||                  
-            Math.abs(majorStep - (currentCm % majorStep)) < epsilon || 
-            Math.abs(currentCm) < epsilon ||                           
-            Math.abs(currentCm - scaleTopCm) < epsilon; // Check against scaleTopCm now
-
-        // Refined check: Is it *exactly* on a major step or the scale top value?
-        let isMajor = false;
-        if (isMajorCandidate) {
-             for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS + 1; j++) { // Extend check slightly beyond major intervals if needed
-                 if (Math.abs(currentCm - (j * majorStep)) < epsilon) {
-                     isMajor = true;
-                     break;
-                 }
-             }
-             // Explicitly check against scaleTopCm
-             if (!isMajor && Math.abs(currentCm - scaleTopCm) < epsilon) {
-                 isMajor = true;
-             }
-        }
-       
-        // Avoid adding minor marks extremely close to major marks (check against scaleTopCm too)
-        let tooCloseToMajor = false;
-        if (!isMajor) {
-            for (let j = -NEGATIVE_MAJOR_INTERVALS; j <= MAJOR_INTERVALS + 1; j++) {
-                if (Math.abs(currentCm - (j * majorStep)) < minorStep / 2) {
-                    tooCloseToMajor = true;
-                    break;
-                }
-            }
-             if (!tooCloseToMajor && Math.abs(currentCm - scaleTopCm) < minorStep / 2){ 
-                tooCloseToMajor = true;
-             }
-        }
-
-        if (isMajor) {
-             // Avoid duplicates
+    for (let currentCm = startMarkValue; currentCm <= endMarkValue; currentCm += majorStep) {
+        if (currentCm >= scaleBottomCm - epsilon && currentCm <= scaleTopCm + epsilon) {
              if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
                 majorMarks.push({
                     valueCm: currentCm,
-                    labelCm: `${Math.round(currentCm)} cm`,
-                    labelFtIn: cmToFtIn(currentCm),
+                    labelCm: cmToCmLabel(currentCm),
+                    labelFtIn: cmToFtIn(currentCm), // Generate Ft label for right side
                 });
              }
-        } 
-        // We are removing minor marks anyway, so commenting this out
-        // else if (!tooCloseToMajor) {
-        //    minorMarks.push({ valueCm: currentCm });
-        // }
+        }
+    }
+    
+    // Ensure 0 is included if within range
+    if (0 >= scaleBottomCm - epsilon && 0 <= scaleTopCm + epsilon && majorMarks.findIndex(m => Math.abs(m.valueCm) < epsilon) === -1) {
+         majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
     }
 
-     // Remove the manual check for maxCm, loop should cover scaleTopCm
-     // if (majorMarks.findIndex(m => Math.abs(m.valueCm - maxCm) < epsilon) === -1 && maxCm > minCmGenerated + epsilon) { ... }
-
-     majorMarks.sort((a, b) => a.valueCm - b.valueCm);
-
-    return { majorMarks, minorMarks, minCm: minCmGenerated };
+    majorMarks.sort((a, b) => a.valueCm - b.valueCm);
+    return majorMarks;
 };
 
-const ImageComparer: React.FC<ImageComparerProps> = ({
-  images, // Now expects images with heightCm
-  containerHeight = '80vh', 
-  containerWidth = '90vw'
-}) => {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const imageContainerRef = useRef<HTMLDivElement>(null); // Ref for the inner image container
-  const [internalCanvasHeightPx, setInternalCanvasHeightPx] = useState<number>(0);
-  const [imageContainerWidthPx, setImageContainerWidthPx] = useState<number>(0);
+// --- Component --- 
+const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const figuresContainerRef = useRef<HTMLDivElement>(null);
+  const [containerHeightPx, setContainerHeightPx] = useState<number>(0);
+  const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
+  const [availableWidthPx, setAvailableWidthPx] = useState<number>(0);
+  // Add state for zoom/pan later if needed
 
+  // Effect to measure container dimensions
   useLayoutEffect(() => {
-    // Get container height
-    if (wrapperRef.current) {
-      const element = wrapperRef.current;
-      const computedStyle = window.getComputedStyle(element);
-      const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
-      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
-      const availableHeight = element.offsetHeight - paddingTop - paddingBottom;
-      setInternalCanvasHeightPx(Math.max(0, availableHeight));
+    let height = 0;
+    let width = 0;
+    let availableWidth = 0;
+    
+    if (containerRef.current) {
+        height = containerRef.current.offsetHeight;
+        width = containerRef.current.offsetWidth;
+        // Calculate the available width between the CM and Ft/In markers
+        availableWidth = Math.max(100, width - (LABEL_WIDTH_PX * 2 + 16)); // 16px for padding
+        
+        setContainerHeightPx(height > 0 ? height : 0);
+        setContainerWidthPx(width > 0 ? width : 0);
+        setAvailableWidthPx(availableWidth > 0 ? availableWidth : 0);
     }
-    // Get image container width
-    if (imageContainerRef.current) {
-        setImageContainerWidthPx(imageContainerRef.current.offsetWidth);
-    }
-  }, [containerHeight, containerWidth, images]); // Rerun if images change (for width calc)
+    
+    // Add resize listener if needed
+    // return () => remove listener;
+  }, [images]); // Rerun if images change (potential height change)
 
-  // Determine the actual maximum image height or default
+  // --- Scale Calculations ---
   const maxImageHeight = images.length > 0 
-      ? Math.max(1, ...images.map(img => img.heightCm || 0)) 
+      ? Math.max(1, ...images.map(img => img.heightCm || 0))
       : 0;
-  const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : DEFAULT_SCALE_MAX_CM;
+  // Use a default max if no images, or base on tallest image
+  const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : 200; // Default height like screenshot
 
-  // Calculate the desired top and bottom for the scale
-  const initialScaleTopCm = actualMaxCm * 1.1;
-  const initialScaleBottomCm = -NEGATIVE_MAJOR_INTERVALS * (Math.max(epsilon, initialScaleTopCm) / MAJOR_INTERVALS) - SCALE_BOTTOM_MARGIN_CM; // Calculate initial bottom based on top
+  // Scale top based on max content + margin
+  const finalScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
+  // Determine a reasonable step (e.g., 10% of max or a fixed value?)
+  const tempMajorStep = Math.max(10, actualMaxCm / MAJOR_INTERVALS); // Ensure step isn't too small
+  // Scale bottom includes one negative step
+  const finalScaleBottomCm = -Math.ceil(Math.abs(tempMajorStep)); // One rounded step below 0
 
-  // --- Generate Marks based on the calculated scale top --- 
-  const { majorMarks: preliminaryMajorMarks, minorMarks: preliminaryMinorMarks, minCm: actualMinCm } = generateHorizontalMarks(initialScaleTopCm);
+  const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
+  const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
+
+  // Calculate PixelsPerCm (vertical scale)
+  const pixelsPerCm = containerHeightPx > 0 && totalRangeCm > 0 
+      ? containerHeightPx / totalRangeCm 
+      : 0;
+
+  // Calculate offset for 0cm alignment
+  const zeroLineOffsetPx = pixelsPerCm > 0 
+      ? Math.max(0, (0 - finalScaleBottomCm) * pixelsPerCm) 
+      : 0;
   
-  // --- Now calculate scales based on the generated marks min and calculated top ---
-  // Use actualMinCm from generated marks for bottom, keep calculated top
-  const finalScaleTopCm = initialScaleTopCm;
-  const finalScaleBottomCm = actualMinCm - SCALE_BOTTOM_MARGIN_CM;
+  // --- Horizontal Scaling Calculations ---
+  // Calculate the ideal width needed for all images
+  const IMAGE_GAP_PX = 16; // Default gap between images
   
-  // ... Calculate initialPixelsPerCm based on final scale range ...
-  const initialTotalRangeCm = finalScaleTopCm - finalScaleBottomCm;
-  const initialPixelsPerCm = internalCanvasHeightPx > 0 && initialTotalRangeCm > 0 
-      ? internalCanvasHeightPx / initialTotalRangeCm 
-      : 0;
-
-  // ... Calculate ideal dimensions and horizontalScaleFactor ...
-  let totalIdealWidth = 0;
-  const imageDimensions = images.map(image => {
-      const idealHeightPx = (image.heightCm || 1) * initialPixelsPerCm;
-      const idealWidthPx = idealHeightPx * (image.aspectRatio || 1);
-      totalIdealWidth += idealWidthPx;
-      return { id: image.id, idealHeight: idealHeightPx, idealWidth: idealWidthPx };
-  });
-  if (images.length > 1) { totalIdealWidth += (images.length - 1) * IMAGE_GAP_PX; }
-  const horizontalScaleFactor = (imageContainerWidthPx > 0 && totalIdealWidth > imageContainerWidthPx)
-      ? imageContainerWidthPx / totalIdealWidth : 1;
-
-  // Adjust scale boundaries based on horizontal scaling and actual min/max
-  const adjustedScaleTopCm = finalScaleTopCm / horizontalScaleFactor;
-  const adjustedScaleBottomCm = finalScaleBottomCm / horizontalScaleFactor;
-  const adjustedTotalRangeCm = adjustedScaleTopCm - adjustedScaleBottomCm;
-  const adjustedPixelsPerCm = internalCanvasHeightPx > 0 && adjustedTotalRangeCm > 0 
-      ? internalCanvasHeightPx / adjustedTotalRangeCm 
-      : 0;
-
-  // Recalculate marks based on the FINAL adjusted scale range if needed?
-  // No, use preliminary marks but position them with final adjusted scale.
-  const majorHorizontalMarks = preliminaryMajorMarks;
-  const minorHorizontalMarks = preliminaryMinorMarks;
-
-  // Calculate padding needed to align image bottom with 0cm line (uses NEW adjustedScaleBottomCm)
-  const zeroLineOffsetPx = adjustedPixelsPerCm > 0 
-      ? Math.max(0, (0 - adjustedScaleBottomCm) * adjustedPixelsPerCm) 
-      : 0;
-
-  const finalGap = Math.max(0, IMAGE_GAP_PX * horizontalScaleFactor);
+  const calculateImageDimensions = () => {
+    if (pixelsPerCm <= 0 || images.length === 0) return { figureDimensions: [], horizontalScale: 1, scaledGap: IMAGE_GAP_PX };
+    
+    // Calculate ideal dimensions for each image
+    const figureDimensions = images.map(image => {
+      const height = Math.max(1, image.heightCm * pixelsPerCm);
+      const width = Math.max(1, height * image.aspectRatio);
+      return { id: image.id, width, height };
+    });
+    
+    // Calculate total ideal width including gaps
+    const totalIdealWidth = figureDimensions.reduce((sum, dim) => sum + dim.width, 0) + 
+                          (images.length > 1 ? (images.length - 1) * IMAGE_GAP_PX : 0);
+    
+    // Calculate horizontal scale factor if images don't fit
+    const horizontalScale = availableWidthPx > 0 && totalIdealWidth > availableWidthPx
+      ? availableWidthPx / totalIdealWidth
+      : 1;
+    
+    // Scale the gap proportionally
+    const scaledGap = horizontalScale < 1 ? IMAGE_GAP_PX * horizontalScale : IMAGE_GAP_PX;
+    
+    return { figureDimensions, horizontalScale, scaledGap };
+  };
+  
+  const { figureDimensions, horizontalScale, scaledGap } = calculateImageDimensions();
+  
+  // --- End of Scale Calculations --- 
 
   return (
-    <div
-      ref={wrapperRef}
-      className="relative flex bg-gray-100 dark:bg-gray-900 rounded-lg shadow overflow-hidden pt-4"
-      style={{ height: containerHeight, width: containerWidth }}
-    >
-      {internalCanvasHeightPx > 0 && (
-        <>
-          {/* Left Label Container (CM) - Positioned Absolutely */}
-          <div 
-            className="absolute left-0 top-0 bottom-0 flex-shrink-0 w-12 pr-1 text-right pointer-events-none z-20"
-          >
-            <div className="relative w-full h-full">
-                {majorHorizontalMarks.map((mark) => {
-                     const positionBottom = adjustedPixelsPerCm > 0 ? (mark.valueCm - adjustedScaleBottomCm) * adjustedPixelsPerCm : 0;
-                     if (positionBottom < -epsilon || positionBottom > internalCanvasHeightPx + epsilon) return null;
-                     const isZeroLine = Math.abs(mark.valueCm) < epsilon;
-    
-                     return (
-                         <div
-                           key={`cm-label-${mark.valueCm}`}
-                           className="absolute left-0 right-0 text-xs pointer-events-auto"
-                           style={{ 
-                               bottom: `${positionBottom - 16}px`,
-                               color: isZeroLine ? '#60a5fa' : 'inherit'
-                           }}
-                         >
-                             <span title={`${mark.labelCm}`}>{mark.labelCm}</span>
-                         </div>
-                     );
-                 })}
-            </div>
-          </div>
-
-          {/* Central Image & Lines Container - Reduce horizontal padding */}
-          <div
-            ref={imageContainerRef}
-            className="relative flex-grow flex items-end overflow-hidden justify-center px-12"
-            style={{ 
-                height: `${internalCanvasHeightPx}px`, 
-                gap: `${finalGap}px`,
-                paddingBottom: `${zeroLineOffsetPx}px`
-            }}
-          >
-            {/* Render Major Horizontal Lines (spanning this container) */}
-             {majorHorizontalMarks.map((mark) => {
-                 const positionBottom = adjustedPixelsPerCm > 0 ? (mark.valueCm - adjustedScaleBottomCm) * adjustedPixelsPerCm : 0;
-                 if (positionBottom < -epsilon || positionBottom > internalCanvasHeightPx + epsilon) return null;
-                 const isZeroLine = Math.abs(mark.valueCm) < epsilon;
-                 return (
-                     <div
-                       key={`major-mark-${mark.valueCm}`}
-                       className="absolute left-0 right-0 pointer-events-none"
-                       style={{ bottom: `${positionBottom}px` }}
-                     >
-                         {/* Use thicker blue line for zero, standard otherwise */}
-                         <div className={` ${isZeroLine ? 'h-0.5 bg-blue-500 dark:bg-blue-400' : 'h-px bg-gray-500 dark:bg-gray-400 opacity-50'} `}></div>
-                     </div>
-                 );
-             })}
-
-            {/* Render Images with Names/Heights (within this container) */}
-            {images.map((image) => {
-              const dims = imageDimensions.find(d => d.id === image.id);
-              if (!dims) return null; 
-
-              const finalHeight = Math.max(1, dims.idealHeight * horizontalScaleFactor);
-              const finalWidth = Math.max(1, dims.idealWidth * horizontalScaleFactor);
-              const offsetXpx = (image.horizontalOffsetCm || 0) * adjustedPixelsPerCm;
-              const offsetYpx = -(image.verticalOffsetCm || 0) * adjustedPixelsPerCm;
+    // Container now fills the space given by parent in page.tsx
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-white dark:bg-gray-800">
+      
+      {/* Background Grid/Scales */} 
+      <div className="absolute inset-0 pointer-events-none z-0">
+          {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
+              const positionBottom = (mark.valueCm - finalScaleBottomCm) * pixelsPerCm;
+              const isZeroLine = Math.abs(mark.valueCm) < epsilon;
+              // Clip marks outside the view (might not be needed with overflow hidden)
+              if (positionBottom < -1 || positionBottom > containerHeightPx + 1) return null;
 
               return (
-                 <div
-                    key={image.id}
-                    className="relative z-10 origin-bottom flex-shrink-0"
-                    style={{
-                        width: `${finalWidth}px`, 
-                        height: `${finalHeight}px`,
-                        transform: `translate(${offsetXpx}px, ${offsetYpx}px)`
-                    }}
-                 >
-                  {image.name && (
-                    <span 
-                      className="absolute bottom-full left-1/2 transform -translate-x-1/2 pb-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
-                    >
-                      {image.name} ({Math.round(image.heightCm)} cm / {cmToFtIn(image.heightCm)})
-                    </span>
-                  )}
-                  {finalHeight > 1 && (
-                      <img
-                        src={image.src}
-                        alt={image.name}
-                        className="block object-contain shadow-md"
-                        style={{ height: '100%', width: '100%' }}
-                      />
-                   )}
-                 </div>
+                  <div key={`mark-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom}px` }}>
+                      {/* Line */}
+                      <div 
+                        className={`mx-auto ${isZeroLine ? 'h-0.5 bg-red-500' : 'h-px bg-gray-300 dark:bg-gray-600'}`}
+                        style={{ width: `calc(100% - ${LABEL_WIDTH_PX * 2}px)`}} // Line stops before labels
+                      ></div>
+                      {/* Left Label (CM) */}
+                      <span 
+                        className="absolute left-0 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
+                        style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
+                      >
+                          {mark.labelCm}
+                      </span>
+                      {/* Right Label (Ft) */}
+                      <span 
+                        className="absolute right-0 text-xs text-gray-500 dark:text-gray-400 text-left pl-2"
+                        style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
+                      >
+                          {mark.labelFtIn}
+                      </span>
+                  </div>
               );
-            })}
-          </div>
+          })}
+      </div>
 
-          {/* Right Label Container (Ft/In) - Positioned Absolutely */}
+      {/* Figures Layer */} 
+      <div 
+        className="absolute inset-0 z-10" 
+        style={{ 
+            paddingLeft: `${LABEL_WIDTH_PX}px`, 
+            paddingRight: `${LABEL_WIDTH_PX}px`,
+            paddingBottom: `${zeroLineOffsetPx}px` // Align base with 0 line
+        }}
+      >
+          {/* Use Flexbox to arrange figures horizontally */}
           <div 
-            className="absolute right-0 top-0 bottom-0 flex-shrink-0 w-12 pl-1 text-left pointer-events-none z-20"
+            ref={figuresContainerRef}
+            className="relative flex items-end justify-center h-full w-full"
+            style={{
+              gap: `${scaledGap}px`, // Apply scaled gap
+              maxWidth: '100%'
+            }}
           >
-            <div className="relative w-full h-full">
-                {majorHorizontalMarks.map((mark) => {
-                     const positionBottom = adjustedPixelsPerCm > 0 ? (mark.valueCm - adjustedScaleBottomCm) * adjustedPixelsPerCm : 0;
-                     if (positionBottom < -epsilon || positionBottom > internalCanvasHeightPx + epsilon) return null;
-                     const isZeroLine = Math.abs(mark.valueCm) < epsilon;
-    
-                     return (
-                         <div
-                           key={`ftin-label-${mark.valueCm}`}
-                           className="absolute left-0 right-0 text-xs pointer-events-auto"
-                           style={{ 
-                               bottom: `${positionBottom - 16}px`,
-                               color: isZeroLine ? '#60a5fa' : 'inherit'
-                           }}
-                         >
-                             <span title={`${mark.labelFtIn}`}>{mark.labelFtIn}</span>
-                         </div>
-                     );
-                 })}
-            </div>
+              {pixelsPerCm > 0 && images.map((image, index) => {
+                  const dimensions = figureDimensions.find(d => d.id === image.id);
+                  if (!dimensions) return null;
+                  
+                  // Apply horizontal scaling
+                  const finalWidth = dimensions.width * (horizontalScale < 1 ? horizontalScale : 1);
+                  const finalHeight = dimensions.height * (horizontalScale < 1 ? horizontalScale : 1);
+                  
+                  // Scale offsets proportionally
+                  const offsetX = image.horizontalOffsetCm * pixelsPerCm * (horizontalScale < 1 ? horizontalScale : 1);
+                  const offsetY = -image.verticalOffsetCm * pixelsPerCm;
+                  
+                  const figureLabel = `${image.name}\ncm: ${Math.round(image.heightCm)}\nft: ${cmToFtIn(image.heightCm)}`;
+
+                  return (
+                      <div 
+                        key={image.id}
+                        className="relative flex-shrink-0 origin-bottom"
+                        style={{
+                            width: `${finalWidth}px`, 
+                            height: `${finalHeight}px`,
+                            transform: `translate(${offsetX}px, ${offsetY}px)` 
+                        }}
+                      >
+                        {/* Figure Label */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 p-1 bg-black/50 text-white text-xs rounded whitespace-pre text-center pointer-events-none"
+                             style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
+                        >
+                          {figureLabel}
+                        </div>
+                        {/* Figure Image/SVG */}
+                        <div 
+                          className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden"
+                          style={{ 
+                            backgroundImage: `url("${image.src}")`,
+                            // Use mask-image to create a silhouette effect with custom color
+                            WebkitMaskImage: `url("${image.src}")`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url("${image.src}")`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            backgroundColor: image.color // Use the color for the fill
+                          }}
+                          title={`${image.name} - ${image.heightCm}cm`}
+                        ></div>
+                      </div>
+                  );
+              })}
           </div>
-        </>
-      )}
+      </div>
     </div>
   );
 };
