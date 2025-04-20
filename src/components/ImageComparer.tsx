@@ -267,7 +267,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                         <div 
                           className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden"
                           style={{ 
-                            backgroundImage: `url("${image.src}")`,
                             // Use mask-image to create a silhouette effect with custom color
                             WebkitMaskImage: `url("${image.src}")`,
                             WebkitMaskSize: 'contain',
