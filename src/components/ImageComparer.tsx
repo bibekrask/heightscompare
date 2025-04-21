@@ -27,7 +27,7 @@ const INCHES_PER_FOOT = 12;
 const MAJOR_INTERVALS = 10; // Number of intervals for major lines (e.g., every 10% of range)
 const NEGATIVE_MAJOR_INTERVALS = 1; // How many major steps below 0
 const LABEL_WIDTH_PX = 60; // Approx width for side labels (adjust as needed)
-const FIGURE_LABEL_OFFSET_Y = -10; // Pixels above figure head for label
+const FIGURE_LABEL_OFFSET_Y = -1; // Pixels above figure head for label - Adjusted to -1
 const epsilon = 1e-6;
 
 // --- Helper Functions (cmToFtIn, cmToCmLabel, generateHorizontalMarks can be adapted) ---
@@ -257,12 +257,19 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                             transform: `translate(${offsetX}px, ${offsetY}px)` 
                         }}
                       >
-                        {/* Figure Label */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 p-1 bg-black/50 text-white text-xs rounded whitespace-pre text-center pointer-events-none"
-                             style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
+                        {/* Figure Label Container - Positioned above the figure */}
+                        <div
+                          className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
+                          style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
                         >
-                          {figureLabel}
+                          {/* Text Content Block - Placed FIRST */}
+                          <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
+                            {figureLabel}
+                          </div>
+                          {/* Horizontal Line - Placed SECOND, below the text */}
+                          <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
                         </div>
+
                         {/* Figure Image/SVG */}
                         <div 
                           className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden"

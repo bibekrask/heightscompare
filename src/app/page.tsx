@@ -483,7 +483,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
 // Controls for the comparer (slightly improved from placeholder)
 const ComparerControls = () => (
-  <div className="h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[65px]">
+  <div className="h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px]">
     <div className="flex items-center space-x-1">
       <button title="Zoom Out" className="p-1 border rounded flex items-center justify-center w-8 h-8">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
