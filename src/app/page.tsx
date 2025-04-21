@@ -608,8 +608,8 @@ export default function Home() {
         {/* Main Comparison Area */} 
         <main className="flex flex-col flex-grow overflow-hidden">
           <ComparerControls />
-          {/* Comparer component */}
-          <div className="flex-grow relative bg-gray-200 dark:bg-gray-700 overflow-auto">
+          {/* Comparer component container - Set fixed height to create space below */}
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-[60vh]"> {/* Removed flex-grow, added fixed height */}
             <ImageComparer images={images} /> 
           </div>
         </main>
