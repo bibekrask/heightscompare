@@ -56,31 +56,42 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
     const totalRange = scaleTopCm - scaleBottomCm;
     if (totalRange <= epsilon) return [];
 
-    // Determine step based on the positive range, ensuring reasonable steps
-    const positiveRange = Math.max(epsilon, scaleTopCm);
-    let majorStep = positiveRange / MAJOR_INTERVALS;
-    // Adjust step to be a 'nicer' number if desired (e.g., multiple of 10, 5, 2)
-    // Simple approach: Use the calculated step
-    
-    const majorMarks: any[] = [];
-    const startMarkValue = Math.floor(scaleBottomCm / majorStep) * majorStep;
-    const endMarkValue = scaleTopCm + epsilon;
+    // Use a smaller fixed step size for closer lines
+    const majorStep = 10; // Fixed step of 10cm
 
+    const majorMarks: any[] = [];
+
+    // Determine loop bounds based on calculated step and scale limits
+    const startMarkValue = Math.floor(scaleBottomCm / majorStep) * majorStep;
+    const endMarkValue = scaleTopCm + epsilon; // Include top edge
+
+    // Loop to generate marks based on step
     for (let currentCm = startMarkValue; currentCm <= endMarkValue; currentCm += majorStep) {
+        // Ensure the mark is within the actual scale range
         if (currentCm >= scaleBottomCm - epsilon && currentCm <= scaleTopCm + epsilon) {
+            // Avoid adding duplicates
              if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
                 majorMarks.push({
                     valueCm: currentCm,
                     labelCm: cmToCmLabel(currentCm),
-                    labelFtIn: cmToFtIn(currentCm), // Generate Ft label for right side
+                    labelFtIn: cmToFtIn(currentCm),
                 });
              }
         }
     }
     
-    // Ensure 0 is included if within range
+    // Explicitly add the zero line if it wasn't added by the loop and is within range
     if (0 >= scaleBottomCm - epsilon && 0 <= scaleTopCm + epsilon && majorMarks.findIndex(m => Math.abs(m.valueCm) < epsilon) === -1) {
-         majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
+        majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
+    }
+
+    // Ensure the specific calculated scaleBottomCm is included if it's negative and wasn't added by the loop
+    if (scaleBottomCm < -epsilon && majorMarks.findIndex(m => Math.abs(m.valueCm - scaleBottomCm) < epsilon) === -1) {
+         majorMarks.push({
+             valueCm: scaleBottomCm,
+             labelCm: cmToCmLabel(scaleBottomCm),
+             labelFtIn: cmToFtIn(scaleBottomCm),
+         });
     }
 
     majorMarks.sort((a, b) => a.valueCm - b.valueCm);

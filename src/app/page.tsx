@@ -109,7 +109,7 @@ interface PersonFormProps {
 const PersonForm: React.FC<PersonFormProps> = ({ 
   initialData = { 
     name: '', 
-    heightCm: DEFAULT_HEIGHT_CM, 
+          heightCm: DEFAULT_HEIGHT_CM,
     gender: 'male',
     color: COLOR_OPTIONS[0]
   }, 
@@ -210,14 +210,14 @@ const PersonForm: React.FC<PersonFormProps> = ({
       {/* Name Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        <input
-          type="text"
+                      <input 
+                        type="text" 
           placeholder="(Optional)"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
           className="w-full p-2 border border-gray-300 rounded"
-        />
-      </div>
+                      />
+                    </div>
 
       {/* Height Input with Unit Toggle */}
       <div>
@@ -242,8 +242,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
         {heightUnit === 'ft' ? (
           <div className="grid grid-cols-2 gap-2">
             <div className="relative">
-              <input
-                type="number"
+                      <input 
+                        type="number" 
                 value={ftInValues.feet}
                 onChange={e => handleFtInChange(e.target.value, 'feet')}
                 className="w-full p-2 border border-gray-300 rounded"
@@ -251,28 +251,28 @@ const PersonForm: React.FC<PersonFormProps> = ({
                 step="1"
               />
               <span className="absolute right-3 top-2 text-gray-500">ft</span>
-            </div>
+                    </div>
             <div className="relative">
-              <input
-                type="number"
+                            <input 
+                                type="number" 
                 value={ftInValues.inches}
                 onChange={e => handleFtInChange(e.target.value, 'inches')}
                 className="w-full p-2 border border-gray-300 rounded"
-                min="0"
+                                min="0" 
                 max="11.99"
                 step="0.1"
-              />
+                            />
               <span className="absolute right-3 top-2 text-gray-500">inch</span>
             </div>
-          </div>
+                        </div>
         ) : (
           <div className="relative">
-            <input
-              type="number"
+                            <input 
+                                type="number" 
               value={Math.round(formData.heightCm)}
               onChange={e => handleCmChange(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
-              min="0"
+                                min="0" 
               step="1"
             />
             <span className="absolute right-3 top-2 text-gray-500">cm</span>
@@ -302,8 +302,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
           >
             <span>+</span>
           </button>
-        </div>
-      </div>
+                        </div>
+                    </div>
 
       {/* Avatar Selection - Simplified for now */}
       <div>
@@ -459,7 +459,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <div className="font-medium">{person.name || "Unnamed"}</div>
                       <div className="text-xs text-gray-500">
                         {Math.round(person.heightCm)} cm ({cmToFtInString(person.heightCm)})
-                      </div>
+                    </div>
                     </div>
                   </div>
                   <button
