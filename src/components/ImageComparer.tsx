@@ -56,19 +56,38 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
     const totalRange = scaleTopCm - scaleBottomCm;
     if (totalRange <= epsilon) return [];
 
-    // Use a smaller fixed step size for closer lines
-    const majorStep = 10; // Fixed step of 10cm
+    // --- Dynamic Nice Step Calculation ---
+    const positiveRange = Math.max(epsilon, scaleTopCm);
+    const niceFractions = [1, 2, 2.5, 5, 10];
+    let majorStep = 10; // Default/minimum step
+
+    if (positiveRange > epsilon) {
+        const rawStep = positiveRange / MAJOR_INTERVALS;
+        const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalizedStep = rawStep / pow10;
+
+        // Find the closest nice fraction
+        let bestFraction = niceFractions[niceFractions.length - 1]; // Start with 10
+        let minDiff = Infinity;
+        for (const frac of niceFractions) {
+            const diff = Math.abs(normalizedStep - frac);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestFraction = frac;
+            }
+        }
+        majorStep = bestFraction * pow10;
+    }
+    // Ensure a minimum step size
+    majorStep = Math.max(10, majorStep); 
+    // --- End Dynamic Nice Step Calculation ---
 
     const majorMarks: any[] = [];
 
-    // Determine loop bounds based on calculated step and scale limits
-    const startMarkValue = Math.floor(scaleBottomCm / majorStep) * majorStep;
-    const endMarkValue = scaleTopCm + epsilon; // Include top edge
-
-    // Loop to generate marks based on step
-    for (let currentCm = startMarkValue; currentCm <= endMarkValue; currentCm += majorStep) {
-        // Ensure the mark is within the actual scale range
-        if (currentCm >= scaleBottomCm - epsilon && currentCm <= scaleTopCm + epsilon) {
+    // Loop ONLY for POSITIVE marks based on the calculated dynamic step
+    for (let currentCm = majorStep; currentCm <= scaleTopCm + epsilon; currentCm += majorStep) {
+        // Check if positive and within top range
+        if (currentCm > epsilon && currentCm <= scaleTopCm + epsilon) {
             // Avoid adding duplicates
              if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
                 majorMarks.push({
@@ -80,18 +99,23 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
         }
     }
     
-    // Explicitly add the zero line if it wasn't added by the loop and is within range
-    if (0 >= scaleBottomCm - epsilon && 0 <= scaleTopCm + epsilon && majorMarks.findIndex(m => Math.abs(m.valueCm) < epsilon) === -1) {
-        majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
+    // Explicitly add the zero line if it's within range
+    if (0 >= scaleBottomCm - epsilon && 0 <= scaleTopCm + epsilon) {
+        if (majorMarks.findIndex(m => Math.abs(m.valueCm) < epsilon) === -1) {
+            majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
+        }
     }
 
-    // Ensure the specific calculated scaleBottomCm is included if it's negative and wasn't added by the loop
-    if (scaleBottomCm < -epsilon && majorMarks.findIndex(m => Math.abs(m.valueCm - scaleBottomCm) < epsilon) === -1) {
-         majorMarks.push({
-             valueCm: scaleBottomCm,
-             labelCm: cmToCmLabel(scaleBottomCm),
-             labelFtIn: cmToFtIn(scaleBottomCm),
-         });
+    // Explicitly add the FIRST negative line (-majorStep) if it's within the scaleBottomCm boundary
+    const firstNegativeMark = -majorStep;
+    if (firstNegativeMark >= scaleBottomCm - epsilon) {
+        if (majorMarks.findIndex(m => Math.abs(m.valueCm - firstNegativeMark) < epsilon) === -1) {
+            majorMarks.push({
+                valueCm: firstNegativeMark,
+                labelCm: cmToCmLabel(firstNegativeMark),
+                labelFtIn: cmToFtIn(firstNegativeMark),
+            });
+        }
     }
 
     majorMarks.sort((a, b) => a.valueCm - b.valueCm);
@@ -137,10 +161,31 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
 
   // Scale top based on max content + margin
   const finalScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
-  // Determine a reasonable step (e.g., 10% of max or a fixed value?)
-  const tempMajorStep = Math.max(10, actualMaxCm / MAJOR_INTERVALS); // Ensure step isn't too small
-  // Scale bottom includes one negative step
-  const finalScaleBottomCm = -Math.ceil(Math.abs(tempMajorStep)); // One rounded step below 0
+
+  // --- Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks) ---
+  let calculatedMajorStep = 10; // Default/minimum step
+  const positiveRangeForStep = Math.max(epsilon, finalScaleTopCm); // Use finalScaleTopCm here
+  if (positiveRangeForStep > epsilon) {
+      const niceFractions = [1, 2, 2.5, 5, 10];
+      const rawStep = positiveRangeForStep / MAJOR_INTERVALS;
+      const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+      const normalizedStep = rawStep / pow10;
+      let bestFraction = niceFractions[niceFractions.length - 1];
+      let minDiff = Infinity;
+      for (const frac of niceFractions) {
+          const diff = Math.abs(normalizedStep - frac);
+          if (diff < minDiff) {
+              minDiff = diff;
+              bestFraction = frac;
+          }
+      }
+      calculatedMajorStep = bestFraction * pow10;
+  }
+  calculatedMajorStep = Math.max(10, calculatedMajorStep);
+  // --- End dynamic step calculation ---
+
+  // Scale bottom: Use calculated step to add margin below the first negative line
+  const finalScaleBottomCm = -calculatedMajorStep * 1.2; // Push bottom down slightly
 
   const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
   const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
