@@ -110,15 +110,15 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
     const firstNegativeMark = -majorStep;
     if (firstNegativeMark >= scaleBottomCm - epsilon) {
         if (majorMarks.findIndex(m => Math.abs(m.valueCm - firstNegativeMark) < epsilon) === -1) {
-            majorMarks.push({
+        majorMarks.push({
                 valueCm: firstNegativeMark,
                 labelCm: cmToCmLabel(firstNegativeMark),
                 labelFtIn: cmToFtIn(firstNegativeMark),
             });
         }
-    }
+     }
 
-    majorMarks.sort((a, b) => a.valueCm - b.valueCm);
+     majorMarks.sort((a, b) => a.valueCm - b.valueCm);
     return majorMarks;
 };
 
@@ -154,7 +154,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
 
   // --- Scale Calculations ---
   const maxImageHeight = images.length > 0 
-      ? Math.max(1, ...images.map(img => img.heightCm || 0))
+      ? Math.max(1, ...images.map(img => img.heightCm || 0)) 
       : 0;
   // Use a default max if no images, or base on tallest image
   const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : 200; // Default height like screenshot
@@ -241,11 +241,11 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
       <div className="absolute inset-0 pointer-events-none z-0">
           {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
               const positionBottom = (mark.valueCm - finalScaleBottomCm) * pixelsPerCm;
-              const isZeroLine = Math.abs(mark.valueCm) < epsilon;
+                 const isZeroLine = Math.abs(mark.valueCm) < epsilon;
               // Clip marks outside the view (might not be needed with overflow hidden)
               if (positionBottom < -1 || positionBottom > containerHeightPx + 1) return null;
 
-              return (
+                  return (
                   <div key={`mark-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom}px` }}>
                       {/* Line */}
                       <div 
@@ -265,10 +265,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                         style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
                       >
                           {mark.labelFtIn}
-                      </span>
-                  </div>
-              );
-          })}
+                         </span>
+                     </div>
+                  );
+             })}
       </div>
 
       {/* Figures Layer */} 
@@ -303,9 +303,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                   
                   const figureLabel = `${image.name}\ncm: ${Math.round(image.heightCm)}\nft: ${cmToFtIn(image.heightCm)}`;
 
-                  return (
-                      <div 
-                        key={image.id}
+              return (
+                 <div
+                    key={image.id}
                         className="relative flex-shrink-0 origin-bottom"
                         style={{
                             width: `${finalWidth}px`, 
@@ -343,9 +343,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                           }}
                           title={`${image.name} - ${image.heightCm}cm`}
                         ></div>
-                      </div>
-                  );
-              })}
+                 </div>
+              );
+            })}
           </div>
       </div>
     </div>

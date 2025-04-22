@@ -110,7 +110,7 @@ interface PersonFormProps {
 const PersonForm: React.FC<PersonFormProps> = ({ 
   initialData = { 
     name: '', 
-    heightCm: DEFAULT_HEIGHT_CM,
+          heightCm: DEFAULT_HEIGHT_CM,
     gender: 'male',
     color: COLOR_OPTIONS[0]
   }, 
@@ -277,11 +277,11 @@ const PersonForm: React.FC<PersonFormProps> = ({
               className="w-full p-2 border border-gray-300 rounded"
                                 min="0" 
               step="1"
-            />
+                            />
             <span className="absolute right-3 top-2 text-gray-500">cm</span>
-          </div>
+                        </div>
         )}
-      </div>
+                    </div>
 
       {/* Color Selection - Use the new ColorPicker component */}
       <div>
@@ -289,8 +289,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
         <ColorPicker 
           selectedColor={formData.color} 
           onChange={handleColorChange} 
-        />
-      </div>
+                      />
+                    </div>
 
       {/* Avatar Selection - Simplified for now */}
       <div>
@@ -314,157 +314,155 @@ const PersonForm: React.FC<PersonFormProps> = ({
 };
 
 // Updated Sidebar Component 
-const Sidebar: React.FC<SidebarProps> = ({ 
+const Sidebar: React.FC<SidebarProps & { className?: string }> = ({ 
   images, 
   selectedId, 
   onSelect, 
   onUpdate, 
   onAdd, 
-  onRemove 
+  onRemove, 
+  className // Accept className prop
 }) => {
   const [mode, setMode] = useState<'add' | 'edit' | 'view'>('add');
   
-  // Get the currently selected person if any
   const selectedPerson = useMemo(() => {
     return selectedId ? images.find(img => img.id === selectedId) : null;
   }, [images, selectedId]);
 
-  // Handle Edit button click
   const handleEditClick = (id: string) => {
     onSelect(id);
     setMode('edit');
   };
 
-  // Handle Done Editing
   const handleDoneEditing = () => {
     onSelect(null);
-    setMode('add'); // Return to add mode
+    setMode('add');
   };
 
-  // Actions section (Add Person, Celebrities, Entities, Add Image)
   const renderActionBar = () => (
-    <div className="flex space-x-2 mb-4 justify-between">
+    <div className="flex flex-wrap gap-2 mb-4 justify-between flex-shrink-0">
       <button 
-        className="p-2 border rounded flex items-center text-gray-700" 
+        className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" 
         title="Add Person"
         onClick={() => { onSelect(null); setMode('add'); }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
         </svg>
-        <span className="text-xs">Add</span>
+        <span className="text-xs hidden sm:inline">Add</span>
       </button>
-      
-      <button className="p-2 border rounded flex items-center text-gray-700" title="Celebrities">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Celebrities">
+         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
-      </button>
-      
-      <button className="p-2 border rounded flex items-center text-gray-700" title="Entities">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-        </svg>
-      </button>
-      
-      <button className="p-2 border rounded flex items-center text-gray-700" title="Add Image">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-        </svg>
-      </button>
+       </button>
+      <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Entities">
+         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+         </svg>
+       </button>
+       <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Add Image">
+         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+           <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+         </svg>
+       </button>
     </div>
   );
 
   return (
-    <aside className="w-full md:w-80 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col h-full overflow-y-auto">
-      <div className="p-4">
+    // Apply passed className here, merging with default styles like overflow
+    <aside className={`${className || ''}`}> 
+      {/* Inner container for padding and flex structure */}
+      <div className="p-4 h-full flex flex-col overflow-hidden"> 
         {renderActionBar()}
         
-        <h2 className="font-medium mb-4">
+        <h2 className="font-medium mb-4 flex-shrink-0">
           {mode === 'add' ? "Enter Your Details:" : mode === 'edit' ? "Edit Person:" : "Select Person:"}
         </h2>
         
-        {/* Add Person Form */}
-        {mode === 'add' && (
-          <PersonForm 
-            onSubmit={personData => {
-              onAdd(personData);
-              // Stay in add mode for adding multiple people
-            }}
-            buttonText="+ Add Person"
-          />
-        )}
-        
-        {/* Edit Person Form */}
-        {mode === 'edit' && selectedPerson && (
-          <>
-            <PersonForm
-              initialData={{
-                name: selectedPerson.name,
-                heightCm: selectedPerson.heightCm,
-                gender: selectedPerson.gender,
-                color: selectedPerson.color
+        {/* Scrollable content area */}
+        <div className="flex-grow overflow-y-auto pr-1"> {/* Added slight padding-right for scrollbar */}
+          {/* Add Person Form */}
+          {mode === 'add' && (
+            <PersonForm 
+              onSubmit={personData => {
+                onAdd(personData);
               }}
-              onSubmit={updates => {
-                onUpdate(selectedId as string, updates);
-                handleDoneEditing();
-              }}
-              buttonText="Done Editing"
+              buttonText="+ Add Person"
             />
-            <button 
-              className="w-full mt-2 bg-red-500 text-white p-2 rounded"
-              onClick={() => {
-                onRemove(selectedId as string);
-                handleDoneEditing();
-              }}
-            >
-              Remove
-            </button>
-          </>
-        )}
-        
-        {/* People List - shown in view mode or when edit form isn't active */}
-        {mode === 'view' && (
-          <div className="space-y-2 mt-4">
-            {images.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No people added yet.</p>
-            ) : (
-              images.map(person => (
-                <div 
-                  key={person.id}
-                  className={`p-3 border rounded flex justify-between items-center cursor-pointer ${
-                    selectedId === person.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                  }`}
-                  onClick={() => onSelect(person.id)}
-                >
-                  <div className="flex items-center">
-                    <div 
-                      className="w-8 h-8 rounded-full mr-2" 
-                      style={{ backgroundColor: person.color }}
-                    ></div>
-                    <div>
-                      <div className="font-medium">{person.name || "Unnamed"}</div>
-                      <div className="text-xs text-gray-500">
-                        {Math.round(person.heightCm)} cm ({cmToFtInString(person.heightCm)})
-                    </div>
-                    </div>
-                  </div>
-                  <button
-                    className="text-blue-500 text-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(person.id);
-                    }}
+          )}
+          
+          {/* Edit Person Form */}
+          {mode === 'edit' && selectedPerson && (
+            <>
+              <PersonForm
+                initialData={{
+                  name: selectedPerson.name,
+                  heightCm: selectedPerson.heightCm,
+                  gender: selectedPerson.gender,
+                  color: selectedPerson.color
+                }}
+                onSubmit={updates => {
+                  onUpdate(selectedId as string, updates);
+                  handleDoneEditing();
+                }}
+                buttonText="Done Editing"
+              />
+              <button 
+                className="w-full mt-2 bg-red-500 text-white p-2 rounded"
+                onClick={() => {
+                  onRemove(selectedId as string);
+                  handleDoneEditing();
+                }}
+              >
+                Remove
+              </button>
+            </>
+          )}
+          
+          {/* People List */}
+          {mode === 'view' && (
+            <div className="space-y-2 mt-4">
+              {images.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No people added yet.</p>
+              ) : (
+                images.map(person => (
+                  <div 
+                    key={person.id}
+                    className={`p-3 border rounded flex justify-between items-center cursor-pointer ${
+                      selectedId === person.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50' : 'border-gray-200 dark:border-gray-700'
+                    }`}
+                    onClick={() => onSelect(person.id)}
                   >
-                    Edit
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </aside>
+                    <div className="flex items-center">
+                      <div 
+                        className="w-8 h-8 rounded-full mr-2 flex-shrink-0" 
+                        style={{ backgroundColor: person.color }}
+                      ></div>
+                      <div className="overflow-hidden mr-2">
+                        <div className="font-medium truncate">{person.name || "Unnamed"}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {Math.round(person.heightCm)} cm ({cmToFtInString(person.heightCm)})
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      className="text-blue-500 text-sm flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(person.id);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div> {/* End Scrollable content area */}
+      </div> {/* End Inner container */}
+    </aside> 
   );
 };
 
