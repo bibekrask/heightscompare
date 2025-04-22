@@ -1,6 +1,6 @@
 'use client'; // Required for future state management and interactions
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ImageComparer from '@/components/ImageComparer';
 import ColorPicker from '@/components/ColorPicker';
 // import AddSection from '@/components/AddSection'; // To be replaced by Sidebar logic
@@ -532,8 +532,52 @@ const cmToFtInObj = (cm: number): { feet: number, inches: number } => {
 };
 
 export default function Home() {
+  // Initialize with default empty state
   const [images, setImages] = useState<ManagedImage[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // --- Load state from localStorage on initial client mount ---
+  useEffect(() => {
+    // Ensure localStorage is available (client-side only)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      // Load images
+      const savedImages = localStorage.getItem('heightCompareImages');
+      if (savedImages) {
+        try {
+          const parsedImages = JSON.parse(savedImages);
+          // Optional: Add validation here to ensure parsedImages matches ManagedImage[] structure
+          if (Array.isArray(parsedImages)) {
+             setImages(parsedImages);
+          }
+        } catch (error) {
+          console.error("Error parsing saved images from localStorage:", error);
+          localStorage.removeItem('heightCompareImages'); // Clear invalid data
+        }
+      }
+
+      // Load selectedId
+      const savedSelectedId = localStorage.getItem('heightCompareSelectedId');
+      if (savedSelectedId && savedSelectedId !== 'null') {
+        setSelectedId(savedSelectedId);
+      } else {
+        setSelectedId(null); // Ensure it's null if not found or explicitly 'null'
+      }
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // --- Save images state to localStorage whenever it changes ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('heightCompareImages', JSON.stringify(images));
+    }
+  }, [images]); // Dependency array includes images
+
+  // --- Save selectedId state to localStorage whenever it changes ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('heightCompareSelectedId', selectedId === null ? 'null' : selectedId);
+    }
+  }, [selectedId]); // Dependency array includes selectedId
 
   // --- Callbacks --- 
   // Add new person
@@ -605,16 +649,19 @@ export default function Home() {
           onUpdate={handleUpdatePerson} 
           onAdd={handleAddPerson} 
           onRemove={handleRemovePerson} 
+          // Assuming className prop is correctly handled within Sidebar definition for layout
+          className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
         />
 
         {/* Main Comparison Area */} 
-        <main className="flex flex-col flex-grow overflow-hidden">
+        <main className="flex flex-col w-full h-[75vh] md:h-auto md:flex-grow overflow-hidden">
           <ComparerControls onClearAll={handleClearAll} />
-          {/* Comparer component container */}
-          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-[60vh]">
+          {/* Comparer component container */} 
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-full md:h-[60vh]"> 
             <ImageComparer images={images} /> 
           </div>
         </main>
+
       </div>
     </div>
   );
