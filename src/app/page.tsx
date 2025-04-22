@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import ImageComparer from '@/components/ImageComparer';
+import ColorPicker from '@/components/ColorPicker';
 // import AddSection from '@/components/AddSection'; // To be replaced by Sidebar logic
 // import EditSection from '@/components/EditSection'; // To be replaced by Sidebar logic
 
@@ -109,7 +110,7 @@ interface PersonFormProps {
 const PersonForm: React.FC<PersonFormProps> = ({ 
   initialData = { 
     name: '', 
-          heightCm: DEFAULT_HEIGHT_CM,
+    heightCm: DEFAULT_HEIGHT_CM,
     gender: 'male',
     color: COLOR_OPTIONS[0]
   }, 
@@ -158,16 +159,18 @@ const PersonForm: React.FC<PersonFormProps> = ({
     setFormData(prev => ({ ...prev, gender }));
   };
 
+  // Handle color change - This function will be passed to ColorPicker
+  const handleColorChange = (color: string) => {
+    setFormData(prev => ({ ...prev, color }));
+  };
+
   // Handle form submission
   const handleSubmit = () => {
     // Create person data with proper silhouette source and aspect ratio
-    const aspectRatio = formData.gender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO;
-    const svg = formData.gender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG;
-    
     onSubmit({
       ...formData,
-      aspectRatio,
-      src: svg, // Use SVG path directly instead of trying to convert it
+      aspectRatio: formData.gender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO,
+      src: formData.gender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
       verticalOffsetCm: 0,
       horizontalOffsetCm: 0
     });
@@ -280,30 +283,14 @@ const PersonForm: React.FC<PersonFormProps> = ({
         )}
       </div>
 
-      {/* Color Selection */}
+      {/* Color Selection - Use the new ColorPicker component */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-        <div className="flex gap-2">
-          {COLOR_OPTIONS.map(color => (
-            <button
-              key={color}
-              onClick={() => setFormData(prev => ({ ...prev, color }))}
-              className={`w-8 h-8 rounded-full ${
-                formData.color === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''
-              }`}
-              style={{ backgroundColor: color }}
-              aria-label={`Select color ${color}`}
-            />
-          ))}
-          <button
-            onClick={() => {/* Add color picker UI */}}
-            className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"
-            aria-label="Custom color"
-          >
-            <span>+</span>
-          </button>
-                        </div>
-                    </div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+        <ColorPicker 
+          selectedColor={formData.color} 
+          onChange={handleColorChange} 
+        />
+      </div>
 
       {/* Avatar Selection - Simplified for now */}
       <div>
