@@ -468,8 +468,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-// Controls for the comparer (slightly improved from placeholder)
-const ComparerControls = () => (
+// Define props for ComparerControls
+interface ComparerControlsProps {
+  onClearAll: () => void;
+}
+
+// Controls for the comparer (accepts props)
+const ComparerControls: React.FC<ComparerControlsProps> = ({ onClearAll }) => (
   <div className="h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px]">
     <div className="flex items-center space-x-1">
       <button title="Zoom Out" className="p-1 border rounded flex items-center justify-center w-8 h-8">
@@ -492,7 +497,13 @@ const ComparerControls = () => (
     </div>
     <div className="flex-grow text-center text-xs text-gray-500">HeightComparison.com</div>
     <div className="flex items-center space-x-1">
-      <button className="text-xs p-1 border rounded" title="Clear All">Clear All</button>
+      <button 
+        className="text-xs p-1 border rounded" 
+        title="Clear All"
+        onClick={onClearAll}
+      >
+        Clear All
+      </button>
       <button className="text-xs p-1 border rounded" title="Edit">Edit</button>
       <button className="text-xs p-1 border rounded" title="More Options">•••</button>
       <button className="text-xs p-1 bg-blue-500 text-white rounded px-3" title="Share">Share</button>
@@ -577,6 +588,12 @@ export default function Home() {
     );
   }, []);
 
+  // Add Clear All callback
+  const handleClearAll = useCallback(() => {
+    setImages([]);
+    setSelectedId(null);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
       <AppHeader />
@@ -594,9 +611,9 @@ export default function Home() {
 
         {/* Main Comparison Area */} 
         <main className="flex flex-col flex-grow overflow-hidden">
-          <ComparerControls />
-          {/* Comparer component container - Set fixed height to create space below */}
-          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-[60vh]"> {/* Removed flex-grow, added fixed height */}
+          <ComparerControls onClearAll={handleClearAll} />
+          {/* Comparer component container */}
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-[60vh]">
             <ImageComparer images={images} /> 
           </div>
         </main>
