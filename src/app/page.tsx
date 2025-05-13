@@ -940,6 +940,7 @@ export default function Home() {
                 }
               }}
               onDelete={handleRemovePerson}
+              onImageUpdate={handleUpdatePerson}
             /> 
           </div>
         </main>

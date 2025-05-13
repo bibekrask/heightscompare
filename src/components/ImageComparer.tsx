@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect, useCallback } from 'react';
 
 // --- Interfaces --- 
 // Match the interface used in page.tsx
@@ -20,6 +20,7 @@ interface ImageComparerProps {
   images: ManagedImage[];
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onImageUpdate?: (id: string, updates: Partial<ManagedImage>) => void;
 }
 
 // --- Constants --- 
@@ -125,13 +126,23 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
 };
 
 // --- Component --- 
-const ImageComparer: React.FC<ImageComparerProps> = ({ images, onEdit, onDelete }) => {
+const ImageComparer: React.FC<ImageComparerProps> = ({ 
+  images, 
+  onEdit, 
+  onDelete,
+  onImageUpdate
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const figuresContainerRef = useRef<HTMLDivElement>(null);
   const [containerHeightPx, setContainerHeightPx] = useState<number>(0);
   const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
   const [availableWidthPx, setAvailableWidthPx] = useState<number>(0);
-  // Add state for zoom/pan later if needed
+  
+  // State for drag functionality
+  const [draggedImage, setDraggedImage] = useState<string | null>(null);
+  const [dragStartX, setDragStartX] = useState<number>(0);
+  const [dragStartY, setDragStartY] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Effect to measure container dimensions
   useLayoutEffect(() => {
@@ -235,6 +246,107 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images, onEdit, onDelete 
   
   // --- End of Scale Calculations --- 
 
+  // Handle mouse down to start drag
+  const handleMouseDown = useCallback((e: React.MouseEvent, imageId: string) => {
+    e.stopPropagation();
+    if (!onImageUpdate) return;
+    
+    setDraggedImage(imageId);
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+    setIsDragging(true);
+  }, [onImageUpdate]);
+
+  // Handle touch start for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent, imageId: string) => {
+    e.stopPropagation();
+    if (!onImageUpdate) return;
+    
+    setDraggedImage(imageId);
+    setDragStartX(e.touches[0].clientX);
+    setDragStartY(e.touches[0].clientY);
+    setIsDragging(true);
+  }, [onImageUpdate]);
+
+  // Handle mouse move to update position
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !draggedImage || !onImageUpdate || !pixelsPerCm) return;
+    
+    const deltaX = e.clientX - dragStartX;
+    const deltaY = e.clientY - dragStartY;
+    
+    const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
+    const deltaYCm = -deltaY / pixelsPerCm; // Invert Y because visual up should increase vertical offset
+    
+    const imageToUpdate = images.find(img => img.id === draggedImage);
+    if (imageToUpdate) {
+      onImageUpdate(draggedImage, {
+        horizontalOffsetCm: imageToUpdate.horizontalOffsetCm + deltaXCm,
+        verticalOffsetCm: imageToUpdate.verticalOffsetCm + deltaYCm
+      });
+    }
+    
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images]);
+
+  // Handle touch move for mobile
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging || !draggedImage || !onImageUpdate || !pixelsPerCm) return;
+    
+    // Prevent default to stop scrolling when dragging
+    e.preventDefault();
+    
+    const deltaX = e.touches[0].clientX - dragStartX;
+    const deltaY = e.touches[0].clientY - dragStartY;
+    
+    const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
+    const deltaYCm = -deltaY / pixelsPerCm; // Invert Y because visual up should increase vertical offset
+    
+    const imageToUpdate = images.find(img => img.id === draggedImage);
+    if (imageToUpdate) {
+      onImageUpdate(draggedImage, {
+        horizontalOffsetCm: imageToUpdate.horizontalOffsetCm + deltaXCm,
+        verticalOffsetCm: imageToUpdate.verticalOffsetCm + deltaYCm
+      });
+    }
+    
+    setDragStartX(e.touches[0].clientX);
+    setDragStartY(e.touches[0].clientY);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images]);
+
+  // Handle mouse up to end drag
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setDraggedImage(null);
+  }, []);
+
+  // Handle touch end for mobile
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    setDraggedImage(null);
+  }, []);
+
+  // Add and remove event listeners for mouse move and up
+  useLayoutEffect(() => {
+    if (isDragging) {
+      // For touch events, we need passive: false to be able to call preventDefault
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', handleTouchEnd);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
   return (
     // Container now fills the space given by parent in page.tsx
     <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-white dark:bg-gray-800">
@@ -308,76 +420,99 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images, onEdit, onDelete 
               return (
                  <div
                     key={image.id}
-                        className="relative flex-shrink-0 origin-bottom group"
-                        style={{
-                            width: `${finalWidth}px`, 
-                            height: `${finalHeight}px`,
-                            transform: `translate(${offsetX}px, ${offsetY}px)` 
-                        }}
-                      >
-                        {/* Edit/Delete buttons - Visible on hover */}
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
-                          {onEdit && (
-                            <button 
-                              className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(image.id);
-                              }}
-                              title="Edit"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button 
-                              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(image.id);
-                              }}
-                              title="Delete"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Figure Label Container - Positioned above the figure */}
-                        <div
-                          className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
-                          style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
-                        >
-                          {/* Text Content Block - Placed FIRST */}
-                          <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
-                            {figureLabel}
-                          </div>
-                          {/* Horizontal Line - Placed SECOND, below the text */}
-                          <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
-                        </div>
-
-                        {/* Figure Image/SVG with hover effect */}
-                        <div 
-                          className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden cursor-pointer transition-opacity duration-200 group-hover:opacity-80"
-                          style={{ 
-                            // Use mask-image to create a silhouette effect with custom color
-                            WebkitMaskImage: `url("${image.src}")`,
-                            WebkitMaskSize: 'contain',
-                            WebkitMaskRepeat: 'no-repeat',
-                            WebkitMaskPosition: 'center',
-                            maskImage: `url("${image.src}")`,
-                            maskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            backgroundColor: image.color // Use the color for the fill
+                    className="relative flex-shrink-0 origin-bottom group"
+                    style={{
+                        width: `${finalWidth}px`, 
+                        height: `${finalHeight}px`,
+                        transform: `translate(${offsetX}px, ${offsetY}px)`,
+                        cursor: isDragging && draggedImage === image.id ? 'grabbing' : 'grab'
+                    }}
+                  >
+                    {/* Edit/Delete buttons - Visible on hover */}
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+                      {onEdit && (
+                        <button 
+                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(image.id);
                           }}
-                          title={`${image.name} - ${image.heightCm}cm`}
-                          onClick={() => onEdit && onEdit(image.id)}
-                        ></div>
+                          title="Edit"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button 
+                          className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(image.id);
+                          }}
+                          title="Delete"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Figure Label Container - Positioned above the figure */}
+                    <div
+                      className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
+                      style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
+                    >
+                      {/* Text Content Block - Placed FIRST */}
+                      <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
+                        {figureLabel}
+                      </div>
+                      {/* Horizontal Line - Placed SECOND, below the text */}
+                      <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
+                    </div>
+
+                    {/* Drag indicator - small hint showing horizontal and vertical arrows */}
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4m0 0l4 4m-4-4v18" />
+                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l4 4m0 0l4-4m-4 4V4" />
+                      </svg>
+                    </div>
+
+                    {/* Figure Image/SVG with hover effect */}
+                    <div 
+                      className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden transition-opacity duration-200 group-hover:opacity-80"
+                      style={{ 
+                        // Use mask-image to create a silhouette effect with custom color
+                        WebkitMaskImage: `url("${image.src}")`,
+                        WebkitMaskSize: 'contain',
+                        WebkitMaskRepeat: 'no-repeat',
+                        WebkitMaskPosition: 'center',
+                        maskImage: `url("${image.src}")`,
+                        maskSize: 'contain',
+                        maskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        backgroundColor: image.color // Use the color for the fill
+                      }}
+                      title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
+                      onClick={(e) => {
+                        if (!isDragging) {
+                          onEdit && onEdit(image.id);
+                        }
+                      }}
+                      onMouseDown={(e) => handleMouseDown(e, image.id)}
+                      onTouchStart={(e) => handleTouchStart(e, image.id)}
+                    ></div>
                  </div>
               );
             })}
