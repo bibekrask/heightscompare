@@ -313,7 +313,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
   );
 };
 
-// Updated Sidebar Component 
+// Sidebar component with tabs and functionality for adding/editing silhouettes
 const Sidebar: React.FC<SidebarProps & { className?: string }> = ({ 
   images, 
   selectedId, 
@@ -323,146 +323,365 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   onRemove, 
   className // Accept className prop
 }) => {
-  const [mode, setMode] = useState<'add' | 'edit' | 'view'>('add');
+  // State to manage which tab is active
+  const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
   
-  const selectedPerson = useMemo(() => {
-    return selectedId ? images.find(img => img.id === selectedId) : null;
-  }, [images, selectedId]);
-
+  // State to manage which silhouette is being edited
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // State to manage editing height unit
+  const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
+  
+  // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
-    onSelect(id);
-    setMode('edit');
+    setEditingId(id === editingId ? null : id);
   };
-
+  
+  // Handle done editing
   const handleDoneEditing = () => {
-    onSelect(null);
-    setMode('add');
+    setEditingId(null);
   };
-
+  
+  // Helper to render the height in different units
+  const renderHeight = (heightCm: number) => {
+    // Calculate ft/in from cm
+    const inches = heightCm / CM_PER_INCH;
+    const feet = Math.floor(inches / 12);
+    const remainingInches = Number((inches % 12).toFixed(2));
+    
+    return `${feet}ft ${remainingInches}inch`;
+  };
+  
+  // Action bar at the top of the sidebar
   const renderActionBar = () => (
-    <div className="flex flex-wrap gap-2 mb-4 justify-between flex-shrink-0">
-      <button 
-        className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" 
-        title="Add Person"
-        onClick={() => { onSelect(null); setMode('add'); }}
+    <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <button
+        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+          activeTab === 'add' 
+            ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
+            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+        }`}
+        onClick={() => setActiveTab('add')}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-        </svg>
-        <span className="text-xs hidden sm:inline">Add</span>
+        <div className="flex flex-col items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add Person</span>
+        </div>
       </button>
-      <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Celebrities">
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-       </button>
-      <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Entities">
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-         </svg>
-       </button>
-       <button className="p-2 border rounded flex items-center text-gray-700 dark:text-gray-300" title="Add Image">
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-           <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-         </svg>
-       </button>
+      
+      <button
+        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+          activeTab === 'celebrities' 
+            ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
+            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+        }`}
+        onClick={() => setActiveTab('celebrities')}
+      >
+        <div className="flex flex-col items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+          <span>Celebrities</span>
+        </div>
+      </button>
+      
+      <button
+        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+          activeTab === 'entities' 
+            ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
+            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+        }`}
+        onClick={() => setActiveTab('entities')}
+      >
+        <div className="flex flex-col items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+          <span>Entities</span>
+        </div>
+      </button>
     </div>
   );
-
-  return (
-    // Apply passed className here, merging with default styles like overflow
-    <aside className={`${className || ''}`}> 
-      {/* Inner container for padding and flex structure */}
-      <div className="p-4 h-full flex flex-col overflow-hidden"> 
-        {renderActionBar()}
-        
-        <h2 className="font-medium mb-4 flex-shrink-0">
-          {mode === 'add' ? "Enter Your Details:" : mode === 'edit' ? "Edit Person:" : "Select Person:"}
-        </h2>
-        
-        {/* Scrollable content area */}
-        <div className="flex-grow overflow-y-auto pr-1"> {/* Added slight padding-right for scrollbar */}
-          {/* Add Person Form */}
-          {mode === 'add' && (
-            <PersonForm 
-              onSubmit={personData => {
-                onAdd(personData);
-              }}
-              buttonText="+ Add Person"
-            />
-          )}
-          
-          {/* Edit Person Form */}
-          {mode === 'edit' && selectedPerson && (
-            <>
-              <PersonForm
-                initialData={{
-                  name: selectedPerson.name,
-                  heightCm: selectedPerson.heightCm,
-                  gender: selectedPerson.gender,
-                  color: selectedPerson.color
-                }}
-                onSubmit={updates => {
-                  onUpdate(selectedId as string, updates);
-                  handleDoneEditing();
-                }}
-                buttonText="Done Editing"
-              />
-              <button 
-                className="w-full mt-2 bg-red-500 text-white p-2 rounded"
-                onClick={() => {
-                  onRemove(selectedId as string);
-                  handleDoneEditing();
-                }}
-              >
-                Remove
-              </button>
-            </>
-          )}
-          
-          {/* People List */}
-          {mode === 'view' && (
-            <div className="space-y-2 mt-4">
-              {images.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No people added yet.</p>
-              ) : (
-                images.map(person => (
-                  <div 
-                    key={person.id}
-                    className={`p-3 border rounded flex justify-between items-center cursor-pointer ${
-                      selectedId === person.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50' : 'border-gray-200 dark:border-gray-700'
+  
+  // Helper to choose avatar background color
+  const getAvatarBgClass = (color: string) => {
+    // Simply use the color directly instead of mapping
+    return { backgroundColor: color };
+  };
+  
+  // Render the list of existing silhouettes
+  const renderSilhouetteList = () => {
+    if (images.length === 0) {
+      return (
+        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+          No silhouettes added yet. Add your first silhouette using the form above.
+        </div>
+      );
+    }
+    
+    return (
+      <div className="p-2 space-y-2">
+        {images.map(image => (
+          <div key={image.id} className="relative">
+            {/* Silhouette header with dropdown */}
+            <div 
+              className={`flex items-center justify-between p-2 rounded cursor-pointer ${
+                editingId === image.id 
+                  ? 'bg-purple-100 dark:bg-purple-900' 
+                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
+              }`}
+              style={{ backgroundColor: image.color }}
+              onClick={() => handleEditClick(image.id)}
+            >
+              <div className="flex items-center space-x-2 text-white">
+                <span className="font-semibold">{image.name || `Person ${image.id.slice(0, 3)}`}</span>
+                <span>{Math.round(image.heightCm)}cm</span>
+              </div>
+              <div className="flex items-center">
+                <span className={`transform transition-transform duration-200 ${editingId === image.id ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+                <button 
+                  className="ml-2 text-white hover:text-red-300"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onRemove(image.id); 
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Expanded editing section */}
+            {editingId === image.id && (
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-b p-3 shadow-md">
+                {/* Done Editing button */}
+                <button 
+                  className="w-full py-2 mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center"
+                  onClick={handleDoneEditing}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Done Editing
+                </button>
+                
+                {/* Gender Selection */}
+                <div className="grid grid-cols-2 gap-1 mb-3">
+                  <button
+                    className={`py-2 px-4 rounded-l border ${
+                      image.gender === 'male' 
+                        ? 'bg-blue-100 border-blue-500' 
+                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
                     }`}
-                    onClick={() => onSelect(person.id)}
+                    onClick={() => onUpdate(image.id, { gender: 'male' })}
                   >
-                    <div className="flex items-center">
-                      <div 
-                        className="w-8 h-8 rounded-full mr-2 flex-shrink-0" 
-                        style={{ backgroundColor: person.color }}
-                      ></div>
-                      <div className="overflow-hidden mr-2">
-                        <div className="font-medium truncate">{person.name || "Unnamed"}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {Math.round(person.heightCm)} cm ({cmToFtInString(person.heightCm)})
-                        </div>
+                    Male
+                  </button>
+                  <button
+                    className={`py-2 px-4 rounded-r border ${
+                      image.gender === 'female' 
+                        ? 'bg-blue-100 border-blue-500' 
+                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+                    }`}
+                    onClick={() => onUpdate(image.id, { gender: 'female' })}
+                  >
+                    Female
+                  </button>
+                </div>
+                
+                {/* Name Input */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter name"
+                    value={image.name}
+                    onChange={(e) => onUpdate(image.id, { name: e.target.value })}
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                  />
+                </div>
+                
+                {/* Height Input with Unit Toggle - similar to Add Person section */}
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
+                    <div className="flex border rounded overflow-hidden">
+                      <button 
+                        className={`px-2 py-1 text-xs ${editingHeightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                        onClick={() => setEditingHeightUnit('ft')}
+                      >
+                        ft
+                      </button>
+                      <button 
+                        className={`px-2 py-1 text-xs ${editingHeightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                        onClick={() => setEditingHeightUnit('cm')}
+                      >
+                        cm
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {editingHeightUnit === 'ft' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <input 
+                          type="number" 
+                          value={Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT)}
+                          onChange={(e) => {
+                            const feet = parseFloat(e.target.value) || 0;
+                            const inches = (image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT;
+                            const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
+                            onUpdate(image.id, { heightCm: newHeightCm });
+                          }}
+                          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                          min="0"
+                          step="1"
+                        />
+                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">ft</span>
+                      </div>
+                      <div className="relative">
+                        <input 
+                          type="number" 
+                          value={Number(((image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT).toFixed(6))}
+                          onChange={(e) => {
+                            const feet = Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT);
+                            const inches = parseFloat(e.target.value) || 0;
+                            const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
+                            onUpdate(image.id, { heightCm: newHeightCm });
+                          }}
+                          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                          min="0" 
+                          max="11.999999"
+                          step="0.000001"
+                        />
+                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">inch</span>
                       </div>
                     </div>
-                    <button
-                      className="text-blue-500 text-sm flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditClick(person.id);
-                      }}
-                    >
-                      Edit
+                  ) : (
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={Math.round(image.heightCm)}
+                        onChange={(e) => onUpdate(image.id, { heightCm: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                        min="0" 
+                        step="1"
+                      />
+                      <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">cm</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Color Selection */}
+                <div className="mb-3">
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {COLOR_OPTIONS.map((color) => (
+                      <button
+                        key={color}
+                        className={`w-10 h-10 rounded-full hover:ring-2 ${image.color === color ? 'ring-2 ring-blue-500' : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => onUpdate(image.id, { color })}
+                        aria-label={`Select color ${color}`}
+                      />
+                    ))}
+                    <button className="w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
                     </button>
                   </div>
-                ))
-              )}
+                </div>
+                
+                {/* Avatar Selection - Dropdown */}
+                <div className="mb-3">
+                  <button className="w-full py-2 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded flex items-center justify-center">
+                    Choose Avatar
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Adjust Alignment Section */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Adjust Alignment</span>
+                    <button className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mb-1">
+                    <button 
+                      className="p-3 bg-blue-500 text-white rounded-lg"
+                      onClick={() => onUpdate(image.id, { verticalOffsetCm: image.verticalOffsetCm + 5 })}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    
+                    <input 
+                      type="number" 
+                      value={image.verticalOffsetCm}
+                      onChange={(e) => onUpdate(image.id, { verticalOffsetCm: parseFloat(e.target.value) || 0 })}
+                      className="w-16 p-2 text-center border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                    />
+                    
+                    <button 
+                      className="p-3 bg-blue-500 text-white rounded-lg"
+                      onClick={() => onUpdate(image.id, { verticalOffsetCm: image.verticalOffsetCm - 5 })}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  // Conditional rendering based on active tab
+  return (
+    <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden ${className}`}>
+      {renderActionBar()}
+      
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'add' && (
+          <>
+            <div className="p-4">
+              <PersonForm onSubmit={onAdd} buttonText="Add Person" />
             </div>
-          )}
-        </div> {/* End Scrollable content area */}
-      </div> {/* End Inner container */}
-    </aside> 
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'celebrities' && (
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+            Celebrity silhouettes will appear here.
+          </div>
+        )}
+        
+        {activeTab === 'entities' && (
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+            Entity silhouettes will appear here.
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
