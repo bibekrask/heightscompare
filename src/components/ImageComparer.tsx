@@ -18,6 +18,8 @@ interface ManagedImage {
 
 interface ImageComparerProps {
   images: ManagedImage[];
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 // --- Constants --- 
@@ -123,7 +125,7 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
 };
 
 // --- Component --- 
-const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
+const ImageComparer: React.FC<ImageComparerProps> = ({ images, onEdit, onDelete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const figuresContainerRef = useRef<HTMLDivElement>(null);
   const [containerHeightPx, setContainerHeightPx] = useState<number>(0);
@@ -306,13 +308,45 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
               return (
                  <div
                     key={image.id}
-                        className="relative flex-shrink-0 origin-bottom"
+                        className="relative flex-shrink-0 origin-bottom group"
                         style={{
                             width: `${finalWidth}px`, 
                             height: `${finalHeight}px`,
                             transform: `translate(${offsetX}px, ${offsetY}px)` 
                         }}
                       >
+                        {/* Edit/Delete buttons - Visible on hover */}
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+                          {onEdit && (
+                            <button 
+                              className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(image.id);
+                              }}
+                              title="Edit"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button 
+                              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(image.id);
+                              }}
+                              title="Delete"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+
                         {/* Figure Label Container - Positioned above the figure */}
                         <div
                           className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
@@ -326,9 +360,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                           <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
                         </div>
 
-                        {/* Figure Image/SVG */}
+                        {/* Figure Image/SVG with hover effect */}
                         <div 
-                          className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden"
+                          className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden cursor-pointer transition-opacity duration-200 group-hover:opacity-80"
                           style={{ 
                             // Use mask-image to create a silhouette effect with custom color
                             WebkitMaskImage: `url("${image.src}")`,
@@ -342,6 +376,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({ images }) => {
                             backgroundColor: image.color // Use the color for the fill
                           }}
                           title={`${image.name} - ${image.heightCm}cm`}
+                          onClick={() => onEdit && onEdit(image.id)}
                         ></div>
                  </div>
               );

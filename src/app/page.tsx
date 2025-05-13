@@ -335,6 +335,8 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
     setEditingId(id === editingId ? null : id);
+    // Also notify the parent component about the selection
+    onSelect(id === editingId ? null : id);
   };
   
   // Handle done editing
@@ -362,6 +364,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
         }`}
         onClick={() => setActiveTab('add')}
+        data-tab="add"
       >
         <div className="flex flex-col items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -378,6 +381,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
         }`}
         onClick={() => setActiveTab('celebrities')}
+        data-tab="celebrities"
       >
         <div className="flex flex-col items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -394,6 +398,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
         }`}
         onClick={() => setActiveTab('entities')}
+        data-tab="entities"
       >
         <div className="flex flex-col items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -434,6 +439,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
               }`}
               style={{ backgroundColor: image.color }}
               onClick={() => handleEditClick(image.id)}
+              data-silhouette-id={image.id}
             >
               <div className="flex items-center space-x-2 text-white">
                 <span className="font-semibold">{image.name || `Person ${image.id.slice(0, 3)}`}</span>
@@ -656,7 +662,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   
   // Conditional rendering based on active tab
   return (
-    <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden sidebar-tabs ${className}`}>
       {renderActionBar()}
       
       <div className="flex-1 overflow-y-auto">
@@ -877,7 +883,35 @@ export default function Home() {
           <ComparerControls onClearAll={handleClearAll} />
           {/* Comparer component container */} 
           <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-full md:h-[60vh]"> 
-            <ImageComparer images={images} /> 
+            <ImageComparer 
+              images={images} 
+              onEdit={(id) => {
+                setSelectedId(id);
+                // Also set the editingId on the Sidebar component
+                // Find existing silhouette in the sidebar and "click" it
+                const silhouette = document.querySelector(`[data-silhouette-id="${id}"]`);
+                if (silhouette) {
+                  (silhouette as HTMLElement).click();
+                }
+                // Find the sidebar reference to set editing ID
+                const sidebarElement = document.querySelector('.sidebar-tabs');
+                if (sidebarElement) {
+                  // Set the active tab to 'add' to ensure the editing interface is visible
+                  const addTabButton = sidebarElement.querySelector('[data-tab="add"]');
+                  if (addTabButton) {
+                    (addTabButton as HTMLElement).click();
+                  }
+                }
+                // On mobile, scroll to the sidebar
+                if (window.innerWidth < 768) {
+                  window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+              onDelete={handleRemovePerson}
+            /> 
           </div>
         </main>
 
