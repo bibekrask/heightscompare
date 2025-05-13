@@ -110,7 +110,7 @@ interface PersonFormProps {
 const PersonForm: React.FC<PersonFormProps> = ({ 
   initialData = { 
     name: '', 
-          heightCm: DEFAULT_HEIGHT_CM,
+    heightCm: 0, // Changed from DEFAULT_HEIGHT_CM to 0 to represent "empty"
     gender: 'male',
     color: COLOR_OPTIONS[0]
   }, 
@@ -122,6 +122,10 @@ const PersonForm: React.FC<PersonFormProps> = ({
   
   // Calculate ft/in from cm for the inputs
   const ftInValues = useMemo(() => {
+    // If height is 0 (empty), return empty values
+    if (formData.heightCm === 0) {
+      return { feet: '' as any, inches: '' as any };
+    }
     const inches = formData.heightCm / CM_PER_INCH;
     const feet = Math.floor(inches / 12);
     const remainingInches = Number((inches % 12).toFixed(2));
@@ -133,8 +137,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
     const newValue = value === '' ? 0 : parseFloat(value);
     if (isNaN(newValue)) return;
     
-    let feet = field === 'feet' ? newValue : ftInValues.feet;
-    let inches = field === 'inches' ? newValue : ftInValues.inches;
+    let feet = field === 'feet' ? newValue : (ftInValues.feet === '' ? 0 : ftInValues.feet);
+    let inches = field === 'inches' ? newValue : (ftInValues.inches === '' ? 0 : ftInValues.inches);
     
     // Ensure valid ranges
     feet = Math.max(0, feet);
@@ -166,11 +170,33 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
   // Handle form submission
   const handleSubmit = () => {
+    // Get random values, but only apply them if user didn't provide input
+    const randomColor = COLOR_OPTIONS[Math.floor(Math.random() * COLOR_OPTIONS.length)];
+    const randomGender = Math.random() < 0.5 ? 'male' : 'female';
+    
+    // Calculate random height between 5'0" and 5'10" (in cm)
+    const minHeightInches = 5 * 12; // 5 feet in inches
+    const maxHeightInches = 5 * 12 + 10; // 5'10" in inches
+    const randomHeightInches = minHeightInches + Math.random() * (maxHeightInches - minHeightInches);
+    const randomHeightCm = randomHeightInches * CM_PER_INCH;
+    
+    // Determine if we should use user values or random values
+    const isHeightEmpty = formData.heightCm === 0;
+    const isColorDefault = formData.color === COLOR_OPTIONS[0];
+    const isGenderDefault = formData.gender === initialData.gender;
+    
     // Create person data with proper silhouette source and aspect ratio
+    const finalGender = isGenderDefault ? randomGender : formData.gender;
+    const finalHeight = isHeightEmpty ? randomHeightCm : formData.heightCm;
+    const finalColor = isColorDefault ? randomColor : formData.color;
+    
     onSubmit({
       ...formData,
-      aspectRatio: formData.gender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO,
-      src: formData.gender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
+      heightCm: finalHeight,
+      color: finalColor,
+      gender: finalGender,
+      aspectRatio: finalGender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO,
+      src: finalGender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
       verticalOffsetCm: 0,
       horizontalOffsetCm: 0
     });
@@ -178,7 +204,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
     // Reset form for adding a new person
     setFormData({ 
       name: '', 
-      heightCm: DEFAULT_HEIGHT_CM, 
+      heightCm: 0, 
       gender: 'male',
       color: COLOR_OPTIONS[0]
     });
@@ -245,41 +271,44 @@ const PersonForm: React.FC<PersonFormProps> = ({
         {heightUnit === 'ft' ? (
           <div className="grid grid-cols-2 gap-2">
             <div className="relative">
-                      <input 
-                        type="number" 
+              <input 
+                type="number" 
                 value={ftInValues.feet}
                 onChange={e => handleFtInChange(e.target.value, 'feet')}
                 className="w-full p-2 border border-gray-300 rounded"
                 min="0"
                 step="1"
+                placeholder="5"
               />
               <span className="absolute right-3 top-2 text-gray-500">ft</span>
-                    </div>
+            </div>
             <div className="relative">
-                            <input 
-                                type="number" 
+              <input 
+                type="number" 
                 value={ftInValues.inches}
                 onChange={e => handleFtInChange(e.target.value, 'inches')}
                 className="w-full p-2 border border-gray-300 rounded"
-                                min="0" 
+                min="0" 
                 max="11.99"
                 step="0.1"
-                            />
+                placeholder="8"
+              />
               <span className="absolute right-3 top-2 text-gray-500">inch</span>
             </div>
-                        </div>
+          </div>
         ) : (
           <div className="relative">
-                            <input 
-                                type="number" 
-              value={Math.round(formData.heightCm)}
+            <input 
+              type="number" 
+              value={formData.heightCm === 0 ? '' : Math.round(formData.heightCm)}
               onChange={e => handleCmChange(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
-                                min="0" 
+              min="0" 
               step="1"
-                            />
+              placeholder="173"
+            />
             <span className="absolute right-3 top-2 text-gray-500">cm</span>
-                        </div>
+          </div>
         )}
                     </div>
 
