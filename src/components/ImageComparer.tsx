@@ -113,6 +113,17 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
         }
     }
 
+    // Ensure we have at least one negative mark
+    const hasNegativeMark = majorMarks.some(m => m.valueCm < -epsilon);
+    if (!hasNegativeMark) {
+        // Add a mark at -majorStep
+        majorMarks.push({
+            valueCm: -majorStep,
+            labelCm: cmToCmLabel(-majorStep),
+            labelFtIn: cmToFtIn(-majorStep)
+        });
+    }
+
     majorMarks.sort((a, b) => a.valueCm - b.valueCm);
     return majorMarks;
 };
@@ -178,11 +189,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const zoomFactor = (110 - zoomLevel) / 50; // Ranges from 0.2 (zoomLevel=100) to 2.0 (zoomLevel=10)
   const zoomAdjustedTopCm = baseScaleTopCm * zoomFactor;
   
-  const finalScaleTopCm = customScaleTopCm !== null ? customScaleTopCm : zoomAdjustedTopCm;
-
-  // --- Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks) ---
+  // Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks)
   let calculatedMajorStep = 10; // Default/minimum step
-  const positiveRangeForStep = Math.max(epsilon, finalScaleTopCm); // Use finalScaleTopCm here
+  const positiveRangeForStep = Math.max(epsilon, zoomAdjustedTopCm); // Use zoomAdjustedTopCm here
   if (positiveRangeForStep > epsilon) {
       const niceFractions = [1, 2, 2.5, 5, 10];
       const rawStep = positiveRangeForStep / MAJOR_INTERVALS;
@@ -203,8 +212,22 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   // --- End dynamic step calculation ---
 
   // Scale bottom: Use calculated step to add margin below the first negative line
+  // Always ensure we have at least one negative mark by forcing the bottom scale to include -calculatedMajorStep
   const baseScaleBottomCm = -calculatedMajorStep * 1.2; // Push bottom down slightly
-  const zoomAdjustedBottomCm = baseScaleBottomCm * zoomFactor;
+  
+  // Apply zoom but ensure minimum negative space by using Math.min
+  // This guarantees that even at high zoom levels, we'll see at least one negative line
+  
+  // First determine minimum negative space needed for at least one negative mark
+  const minimumNegativeSpace = -calculatedMajorStep * 1.1; // Space for at least one negative mark
+  
+  // Calculate where the scale bottom would be if we just applied zoom factor
+  const rawZoomAdjustedBottomCm = baseScaleBottomCm * zoomFactor;
+  
+  // If zoomAdjustedBottomCm is too small (not negative enough), force it to show at least one negative line
+  const zoomAdjustedBottomCm = Math.min(rawZoomAdjustedBottomCm, minimumNegativeSpace);
+  
+  const finalScaleTopCm = customScaleTopCm !== null ? customScaleTopCm : zoomAdjustedTopCm;
   const finalScaleBottomCm = customScaleBottomCm !== null ? customScaleBottomCm : zoomAdjustedBottomCm;
 
   const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
@@ -356,7 +379,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       setCustomScaleTopCm(finalScaleTopCm + rangeIncrement);
     } else if (scrollHeight - (scrollTop + clientHeight) < SCROLL_THRESHOLD) {
       // Near bottom - expand scale downwards
-      setCustomScaleBottomCm(finalScaleBottomCm - rangeIncrement);
+      // Always preserve at least one negative line
+      const minimumNegativeSpace = -calculatedMajorStep * 1.1;
+      const newBottomValue = finalScaleBottomCm - rangeIncrement;
+      setCustomScaleBottomCm(Math.min(newBottomValue, minimumNegativeSpace));
     }
     
     // Set a timeout to detect when scrolling stops
@@ -364,7 +390,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     (window as any).scrollTimeout = setTimeout(() => {
       setIsScrolling(false);
     }, 100);
-  }, [finalScaleTopCm, finalScaleBottomCm, zoomLevel]);
+  }, [finalScaleTopCm, finalScaleBottomCm, zoomLevel, calculatedMajorStep]);
 
   // Add and remove event listeners for mouse move and up
   useLayoutEffect(() => {
