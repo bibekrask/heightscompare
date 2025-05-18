@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useLayoutEffect, useCallback } from 'react';
+import React, { useRef, useState, useLayoutEffect, useCallback, useEffect } from 'react';
 
 // --- Interfaces --- 
 // Match the interface used in page.tsx
@@ -18,6 +18,7 @@ interface ManagedImage {
 
 interface ImageComparerProps {
   images: ManagedImage[];
+  zoomLevel?: number; // Add zoom level property
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onImageUpdate?: (id: string, updates: Partial<ManagedImage>) => void;
@@ -32,6 +33,10 @@ const NEGATIVE_MAJOR_INTERVALS = 1; // How many major steps below 0
 const LABEL_WIDTH_PX = 60; // Approx width for side labels (adjust as needed)
 const FIGURE_LABEL_OFFSET_Y = -1; // Pixels above figure head for label - Adjusted to -1
 const epsilon = 1e-6;
+
+// Constants for infinite scrolling
+const SCROLL_THRESHOLD = 100; // px from top/bottom to trigger range expansion
+const RANGE_INCREMENT_FACTOR = 0.5; // How much to increase range by when scrolled to edge
 
 // --- Helper Functions (cmToFtIn, cmToCmLabel, generateHorizontalMarks can be adapted) ---
 const cmToFtIn = (cm: number): string => {
@@ -87,47 +92,35 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
 
     const majorMarks: any[] = [];
 
-    // Loop ONLY for POSITIVE marks based on the calculated dynamic step
-    for (let currentCm = majorStep; currentCm <= scaleTopCm + epsilon; currentCm += majorStep) {
-        // Check if positive and within top range
-        if (currentCm > epsilon && currentCm <= scaleTopCm + epsilon) {
-            // Avoid adding duplicates
-             if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
-                majorMarks.push({
-                    valueCm: currentCm,
-                    labelCm: cmToCmLabel(currentCm),
-                    labelFtIn: cmToFtIn(currentCm),
-                });
-             }
+    // Generate marks based on the step for the full range
+    for (let currentCm = Math.ceil(scaleBottomCm / majorStep) * majorStep; 
+         currentCm <= scaleTopCm + epsilon; 
+         currentCm += majorStep) {
+        // Avoid adding duplicates
+        if (majorMarks.findIndex(m => Math.abs(m.valueCm - currentCm) < epsilon) === -1) {
+            majorMarks.push({
+                valueCm: currentCm,
+                labelCm: cmToCmLabel(currentCm),
+                labelFtIn: cmToFtIn(currentCm),
+            });
         }
     }
     
-    // Explicitly add the zero line if it's within range
+    // Explicitly add the zero line if it's within range and not already added
     if (0 >= scaleBottomCm - epsilon && 0 <= scaleTopCm + epsilon) {
         if (majorMarks.findIndex(m => Math.abs(m.valueCm) < epsilon) === -1) {
             majorMarks.push({ valueCm: 0, labelCm: '0', labelFtIn: cmToFtIn(0) });
         }
     }
 
-    // Explicitly add the FIRST negative line (-majorStep) if it's within the scaleBottomCm boundary
-    const firstNegativeMark = -majorStep;
-    if (firstNegativeMark >= scaleBottomCm - epsilon) {
-        if (majorMarks.findIndex(m => Math.abs(m.valueCm - firstNegativeMark) < epsilon) === -1) {
-        majorMarks.push({
-                valueCm: firstNegativeMark,
-                labelCm: cmToCmLabel(firstNegativeMark),
-                labelFtIn: cmToFtIn(firstNegativeMark),
-            });
-        }
-     }
-
-     majorMarks.sort((a, b) => a.valueCm - b.valueCm);
+    majorMarks.sort((a, b) => a.valueCm - b.valueCm);
     return majorMarks;
 };
 
 // --- Component --- 
 const ImageComparer: React.FC<ImageComparerProps> = ({ 
   images, 
+  zoomLevel = 50,
   onEdit, 
   onDelete,
   onImageUpdate
@@ -143,6 +136,12 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [dragStartX, setDragStartX] = useState<number>(0);
   const [dragStartY, setDragStartY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  // State for infinite scroll
+  const [customScaleTopCm, setCustomScaleTopCm] = useState<number | null>(null);
+  const [customScaleBottomCm, setCustomScaleBottomCm] = useState<number | null>(null);
+  const [scrollPosition, setScrollPosition] = useState<number>(0);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
 
   // Effect to measure container dimensions
   useLayoutEffect(() => {
@@ -173,7 +172,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : 200; // Default height like screenshot
 
   // Scale top based on max content + margin
-  const finalScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
+  const baseScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
+  
+  // Apply zoom level to the scale - lower zoom level means more range is shown
+  const zoomFactor = (110 - zoomLevel) / 50; // Ranges from 0.2 (zoomLevel=100) to 2.0 (zoomLevel=10)
+  const zoomAdjustedTopCm = baseScaleTopCm * zoomFactor;
+  
+  const finalScaleTopCm = customScaleTopCm !== null ? customScaleTopCm : zoomAdjustedTopCm;
 
   // --- Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks) ---
   let calculatedMajorStep = 10; // Default/minimum step
@@ -198,7 +203,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   // --- End dynamic step calculation ---
 
   // Scale bottom: Use calculated step to add margin below the first negative line
-  const finalScaleBottomCm = -calculatedMajorStep * 1.2; // Push bottom down slightly
+  const baseScaleBottomCm = -calculatedMajorStep * 1.2; // Push bottom down slightly
+  const zoomAdjustedBottomCm = baseScaleBottomCm * zoomFactor;
+  const finalScaleBottomCm = customScaleBottomCm !== null ? customScaleBottomCm : zoomAdjustedBottomCm;
 
   const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
   const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
@@ -327,6 +334,38 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDraggedImage(null);
   }, []);
 
+  // Handle scroll for infinite scrolling
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+    
+    setScrollPosition(scrollTop);
+    setIsScrolling(true);
+    
+    // Determine the range increment based on zoom level
+    // Lower zoom levels (wider range) need larger increments
+    const rangeIncrement = (finalScaleTopCm - finalScaleBottomCm) * 
+                          RANGE_INCREMENT_FACTOR * 
+                          (1 + (100 - zoomLevel) / 100); // Scale increment with zoom
+    
+    // Detect when user scrolls near the top or bottom
+    if (scrollTop < SCROLL_THRESHOLD) {
+      // Near top - expand scale upwards
+      setCustomScaleTopCm(finalScaleTopCm + rangeIncrement);
+    } else if (scrollHeight - (scrollTop + clientHeight) < SCROLL_THRESHOLD) {
+      // Near bottom - expand scale downwards
+      setCustomScaleBottomCm(finalScaleBottomCm - rangeIncrement);
+    }
+    
+    // Set a timeout to detect when scrolling stops
+    clearTimeout((window as any).scrollTimeout);
+    (window as any).scrollTimeout = setTimeout(() => {
+      setIsScrolling(false);
+    }, 100);
+  }, [finalScaleTopCm, finalScaleBottomCm, zoomLevel]);
+
   // Add and remove event listeners for mouse move and up
   useLayoutEffect(() => {
     if (isDragging) {
@@ -347,185 +386,204 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
+  // Effect to maintain scroll position when scale changes
+  useEffect(() => {
+    if (containerRef.current && pixelsPerCm > 0) {
+      // Calculate the position that would keep our view centered after scale change
+      const targetPosition = scrollPosition * (containerRef.current.scrollHeight / containerHeightPx);
+      containerRef.current.scrollTop = targetPosition;
+    }
+  }, [finalScaleTopCm, finalScaleBottomCm, containerHeightPx, scrollPosition, pixelsPerCm]);
+
   return (
-    // Container now fills the space given by parent in page.tsx
-    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-white dark:bg-gray-800">
-      
-      {/* Background Grid/Scales */} 
-      <div className="absolute inset-0 pointer-events-none z-0">
-          {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
-              const positionBottom = (mark.valueCm - finalScaleBottomCm) * pixelsPerCm;
-                 const isZeroLine = Math.abs(mark.valueCm) < epsilon;
-              // Clip marks outside the view (might not be needed with overflow hidden)
-              if (positionBottom < -1 || positionBottom > containerHeightPx + 1) return null;
-
-                  return (
-                  <div key={`mark-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom}px` }}>
-                      {/* Line */}
-                      <div 
-                        className={`mx-auto ${isZeroLine ? 'h-0.5 bg-red-500' : 'h-px bg-gray-300 dark:bg-gray-600'}`}
-                        style={{ width: `calc(100% - ${LABEL_WIDTH_PX * 2}px)`}} // Line stops before labels
-                      ></div>
-                      {/* Left Label (CM) */}
-                      <span 
-                        className="absolute left-0 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
-                        style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
-                      >
-                          {mark.labelCm}
-                      </span>
-                      {/* Right Label (Ft) */}
-                      <span 
-                        className="absolute right-0 text-xs text-gray-500 dark:text-gray-400 text-left pl-2"
-                        style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
-                      >
-                          {mark.labelFtIn}
-                         </span>
-                     </div>
-                  );
-             })}
-      </div>
-
-      {/* Figures Layer */} 
+    // Container now fills the space given by parent in page.tsx and captures scroll events
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full overflow-auto bg-white dark:bg-gray-800"
+      onScroll={handleScroll}
+    >
+      {/* Content wrapper to allow scrolling beyond the visible area */}
       <div 
-        className="absolute inset-0 z-10" 
+        className="relative" 
         style={{ 
-            paddingLeft: `${LABEL_WIDTH_PX}px`, 
-            paddingRight: `${LABEL_WIDTH_PX}px`,
-            paddingBottom: `${zeroLineOffsetPx}px` // Align base with 0 line
+          height: `${containerHeightPx}px`,
+          minHeight: '100%'
         }}
       >
-          {/* Use Flexbox to arrange figures horizontally */}
-          <div 
-            ref={figuresContainerRef}
-            className="relative flex items-end justify-center h-full w-full"
-            style={{
-              gap: `${scaledGap}px`, // Apply scaled gap
-              maxWidth: '100%'
-            }}
-          >
-              {pixelsPerCm > 0 && images.map((image, index) => {
-                  const dimensions = figureDimensions.find(d => d.id === image.id);
-                  if (!dimensions) return null;
-                  
-                  // Apply horizontal scaling
-                  const finalWidth = dimensions.width * (horizontalScale < 1 ? horizontalScale : 1);
-                  const finalHeight = dimensions.height * (horizontalScale < 1 ? horizontalScale : 1);
-                  
-                  // Scale offsets proportionally
-                  const offsetX = image.horizontalOffsetCm * pixelsPerCm * (horizontalScale < 1 ? horizontalScale : 1);
-                  const offsetY = -image.verticalOffsetCm * pixelsPerCm;
-                  
-                  const figureLabel = `${image.name}\ncm: ${Math.round(image.heightCm)}\nft: ${cmToFtIn(image.heightCm)}`;
-
-              return (
-                 <div
-                    key={image.id}
-                    className="relative flex-shrink-0 origin-bottom group"
-                    style={{
-                        width: `${finalWidth}px`, 
-                        height: `${finalHeight}px`,
-                        transform: `translate(${offsetX}px, ${offsetY}px)`,
-                        cursor: isDragging && draggedImage === image.id ? 'grabbing' : 'grab'
-                    }}
-                  >
-                    {/* Edit/Delete buttons - Visible on hover */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
-                      {onEdit && (
-                        <button 
-                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(image.id);
-                          }}
-                          title="Edit"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button 
-                          className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(image.id);
-                          }}
-                          title="Delete"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Figure Label Container - Positioned above the figure */}
-                    <div
-                      className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
-                      style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
-                    >
-                      {/* Text Content Block - Placed FIRST */}
-                      <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
-                        {figureLabel}
-                      </div>
-                      {/* Horizontal Line - Placed SECOND, below the text */}
-                      <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
-                    </div>
-
-                    {/* Drag indicator - small hint showing horizontal and vertical arrows */}
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4m0 0l4 4m-4-4v18" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l4 4m0 0l4-4m-4 4V4" />
-                      </svg>
-                    </div>
-
-                    {/* Figure Image/SVG with hover effect */}
+        {/* Background Grid/Scales */} 
+        <div className="absolute inset-0 pointer-events-none z-0">
+            {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
+                const positionBottom = (mark.valueCm - finalScaleBottomCm) * pixelsPerCm;
+                const isZeroLine = Math.abs(mark.valueCm) < epsilon;
+                
+                return (
+                <div key={`mark-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom}px` }}>
+                    {/* Line */}
                     <div 
-                      className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden transition-opacity duration-200 group-hover:opacity-80"
-                      style={{ 
-                        // Check if image is an SVG (from default silhouettes) or a custom uploaded image
-                        ...(image.src.includes('.svg') || image.src.startsWith('/images/') ? {
-                          // For SVG images, use mask-image to create a silhouette effect with custom color
-                          WebkitMaskImage: `url("${image.src}")`,
-                          WebkitMaskSize: 'contain',
-                          WebkitMaskRepeat: 'no-repeat',
-                          WebkitMaskPosition: 'center',
-                          maskImage: `url("${image.src}")`,
-                          maskSize: 'contain',
-                          maskRepeat: 'no-repeat',
-                          maskPosition: 'center',
-                          backgroundColor: image.color // Use the color for the fill
-                        } : {
-                          // For non-SVG images, use background-image directly
-                          backgroundImage: `url("${image.src}")`,
-                          backgroundSize: 'contain',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'center'
-                        })
-                      }}
-                      title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
-                      onClick={(e) => {
-                        if (!isDragging) {
-                          onEdit && onEdit(image.id);
-                        }
-                      }}
-                      onMouseDown={(e) => handleMouseDown(e, image.id)}
-                      onTouchStart={(e) => handleTouchStart(e, image.id)}
+                      className={`mx-auto ${isZeroLine ? 'h-0.5 bg-red-500' : 'h-px bg-gray-300 dark:bg-gray-600'}`}
+                      style={{ width: `calc(100% - ${LABEL_WIDTH_PX * 2}px)`}} // Line stops before labels
                     ></div>
-                 </div>
-              );
-            })}
-          </div>
+                    {/* Left Label (CM) */}
+                    <span 
+                      className="absolute left-0 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
+                      style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
+                    >
+                        {mark.labelCm}
+                    </span>
+                    {/* Right Label (Ft) */}
+                    <span 
+                      className="absolute right-0 text-xs text-gray-500 dark:text-gray-400 text-left pl-2"
+                      style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
+                    >
+                        {mark.labelFtIn}
+                       </span>
+                   </div>
+                );
+           })}
+        </div>
+
+        {/* Figures Layer */} 
+        <div 
+          className="absolute inset-0 z-10" 
+          style={{ 
+              paddingLeft: `${LABEL_WIDTH_PX}px`, 
+              paddingRight: `${LABEL_WIDTH_PX}px`,
+              paddingBottom: `${zeroLineOffsetPx}px` // Align base with 0 line
+          }}
+        >
+            {/* Use Flexbox to arrange figures horizontally */}
+            <div 
+              ref={figuresContainerRef}
+              className="relative flex items-end justify-center h-full w-full"
+              style={{
+                gap: `${scaledGap}px`, // Apply scaled gap
+                maxWidth: '100%'
+              }}
+            >
+                {pixelsPerCm > 0 && images.map((image, index) => {
+                    const dimensions = figureDimensions.find(d => d.id === image.id);
+                    if (!dimensions) return null;
+                    
+                    // Apply horizontal scaling
+                    const finalWidth = dimensions.width * (horizontalScale < 1 ? horizontalScale : 1);
+                    const finalHeight = dimensions.height * (horizontalScale < 1 ? horizontalScale : 1);
+                    
+                    // Scale offsets proportionally
+                    const offsetX = image.horizontalOffsetCm * pixelsPerCm * (horizontalScale < 1 ? horizontalScale : 1);
+                    const offsetY = -image.verticalOffsetCm * pixelsPerCm;
+                    
+                    const figureLabel = `${image.name}\ncm: ${Math.round(image.heightCm)}\nft: ${cmToFtIn(image.heightCm)}`;
+
+                return (
+                   <div
+                      key={image.id}
+                      className="relative flex-shrink-0 origin-bottom group"
+                      style={{
+                          width: `${finalWidth}px`, 
+                          height: `${finalHeight}px`,
+                          transform: `translate(${offsetX}px, ${offsetY}px)`,
+                          cursor: isDragging && draggedImage === image.id ? 'grabbing' : 'grab'
+                      }}
+                    >
+                      {/* Edit/Delete buttons - Visible on hover */}
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+                        {onEdit && (
+                          <button 
+                            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(image.id);
+                            }}
+                            title="Edit"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button 
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(image.id);
+                            }}
+                            title="Delete"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Figure Label Container - Positioned above the figure */}
+                      <div
+                        className="absolute bottom-full left-1/2 flex flex-col items-center pointer-events-none"
+                        style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
+                      >
+                        {/* Text Content Block - Placed FIRST */}
+                        <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
+                          {figureLabel}
+                        </div>
+                        {/* Horizontal Line - Placed SECOND, below the text */}
+                        <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
+                      </div>
+
+                      {/* Drag indicator - small hint showing horizontal and vertical arrows */}
+                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4m0 0l4 4m-4-4v18" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l4 4m0 0l4-4m-4 4V4" />
+                        </svg>
+                      </div>
+
+                      {/* Figure Image/SVG with hover effect */}
+                      <div 
+                        className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden transition-opacity duration-200 group-hover:opacity-80"
+                        style={{ 
+                          // Check if image is an SVG (from default silhouettes) or a custom uploaded image
+                          ...(image.src.includes('.svg') || image.src.startsWith('/images/') ? {
+                            // For SVG images, use mask-image to create a silhouette effect with custom color
+                            WebkitMaskImage: `url("${image.src}")`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url("${image.src}")`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            backgroundColor: image.color // Use the color for the fill
+                          } : {
+                            // For non-SVG images, use background-image directly
+                            backgroundImage: `url("${image.src}")`,
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center'
+                          })
+                        }}
+                        title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
+                        onClick={(e) => {
+                          if (!isDragging) {
+                            onEdit && onEdit(image.id);
+                          }
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, image.id)}
+                        onTouchStart={(e) => handleTouchStart(e, image.id)}
+                      ></div>
+                   </div>
+                );
+              })}
+            </div>
+        </div>
       </div>
     </div>
   );

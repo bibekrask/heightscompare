@@ -920,25 +920,44 @@ const Sidebar: React.FC<SidebarProps & {
 // Define props for ComparerControls
 interface ComparerControlsProps {
   onClearAll: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomChange?: (value: number) => void;
+  zoomLevel?: number;
 }
 
 // Controls for the comparer (accepts props)
-const ComparerControls: React.FC<ComparerControlsProps> = ({ onClearAll }) => (
+const ComparerControls: React.FC<ComparerControlsProps> = ({ 
+  onClearAll,
+  onZoomIn,
+  onZoomOut,
+  onZoomChange,
+  zoomLevel = 50 
+}) => (
   <div className="h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px]">
     <div className="flex items-center space-x-1">
-      <button title="Zoom Out" className="p-1 border rounded flex items-center justify-center w-8 h-8">
+      <button 
+        title="Zoom Out" 
+        className="p-1 border rounded flex items-center justify-center w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+        onClick={onZoomOut}
+      >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
         </svg>
       </button>
       <input
         type="range"
-        min="0"
+        min="10"
         max="100"
-        defaultValue="50"
+        value={zoomLevel}
+        onChange={(e) => onZoomChange && onZoomChange(parseInt(e.target.value))}
         className="w-24 h-[4px]"
       />
-      <button title="Zoom In" className="p-1 border rounded flex items-center justify-center w-8 h-8">
+      <button 
+        title="Zoom In" 
+        className="p-1 border rounded flex items-center justify-center w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+        onClick={onZoomIn}
+      >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
@@ -987,6 +1006,7 @@ export default function Home() {
   const [images, setImages] = useState<ManagedImage[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(50);
 
   // --- Load state from localStorage on initial client mount ---
   useEffect(() => {
@@ -1014,6 +1034,19 @@ export default function Home() {
       } else {
         setSelectedId(null); // Ensure it's null if not found or explicitly 'null'
       }
+      
+      // Load zoom level
+      const savedZoomLevel = localStorage.getItem('heightCompareZoomLevel');
+      if (savedZoomLevel) {
+        try {
+          const zoomValue = parseInt(savedZoomLevel);
+          if (!isNaN(zoomValue) && zoomValue >= 10 && zoomValue <= 100) {
+            setZoomLevel(zoomValue);
+          }
+        } catch (error) {
+          console.error("Error parsing zoom level:", error);
+        }
+      }
     }
   }, []); // Empty dependency array ensures this runs only once on mount
 
@@ -1037,6 +1070,13 @@ export default function Home() {
       setEditingId(null);
     }
   }, [selectedId]);
+
+  // --- Save zoom level to localStorage whenever it changes ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('heightCompareZoomLevel', zoomLevel.toString());
+    }
+  }, [zoomLevel]);
 
   // --- Callbacks --- 
   // Add new person
@@ -1096,6 +1136,19 @@ export default function Home() {
     setSelectedId(null);
   }, []);
 
+  // Add zoom control handlers
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(100, prev + 10));
+  }, []);
+  
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(10, prev - 10));
+  }, []);
+  
+  const handleZoomChange = useCallback((value: number) => {
+    setZoomLevel(value);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
       <AppHeader />
@@ -1116,11 +1169,18 @@ export default function Home() {
 
         {/* Main Comparison Area */} 
         <main className="flex flex-col w-full h-[75vh] md:h-auto md:flex-grow overflow-hidden">
-          <ComparerControls onClearAll={handleClearAll} />
+          <ComparerControls 
+            onClearAll={handleClearAll}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onZoomChange={handleZoomChange}
+            zoomLevel={zoomLevel} 
+          />
           {/* Comparer component container */} 
-          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-auto h-full md:h-[60vh]"> 
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-hidden h-full md:h-[60vh]"> 
             <ImageComparer 
-              images={images} 
+              images={images}
+              zoomLevel={zoomLevel}
               onEdit={(id) => {
                 // If the image is already being edited, then clicking it should close the edit sidebar
                 const isAlreadyEditing = editingId === id;
