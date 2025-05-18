@@ -457,11 +457,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
 };
 
 // Sidebar component
-const Sidebar: React.FC<SidebarProps & { 
-  className?: string, 
-  editingId?: string | null,
-  onSetEditingId?: (id: string | null) => void 
-}> = ({ 
+const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string | null }> = ({ 
   images, 
   selectedId, 
   onSelect, 
@@ -469,7 +465,6 @@ const Sidebar: React.FC<SidebarProps & {
   onAdd, 
   onRemove,
   editingId,
-  onSetEditingId,
   className // Accept className prop
 }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
@@ -481,23 +476,41 @@ const Sidebar: React.FC<SidebarProps & {
     color: COLOR_OPTIONS[0]
   });
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
+  const sidebarContentRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
   
   // Sync parent editingId with local state
   useEffect(() => {
     if (editingId !== undefined) {
       setLocalEditingId(editingId);
+      
+      // Scroll to the edited item when editingId changes
+      if (editingId && sidebarContentRef.current && itemRefs.current[editingId]) {
+        // Add a slight delay to ensure DOM updates are complete
+        setTimeout(() => {
+          const itemElement = itemRefs.current[editingId];
+          if (itemElement && sidebarContentRef.current) {
+            // Get the position of the item relative to the sidebar
+            const itemRect = itemElement.getBoundingClientRect();
+            const sidebarRect = sidebarContentRef.current.getBoundingClientRect();
+            
+            // Calculate offset to scroll to (accounting for some padding)
+            const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
+            
+            // Scroll the sidebar to the item
+            sidebarContentRef.current.scrollTo({
+              top: scrollOffset,
+              behavior: 'smooth'
+            });
+          }
+        }, 50);
+      }
     }
   }, [editingId]);
   
   // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
-    const newEditingId = id === localEditingId ? null : id;
-    setLocalEditingId(newEditingId);
-    // Also update parent state if callback provided
-    if (onSetEditingId) {
-      onSetEditingId(newEditingId);
-    }
-    
+    setLocalEditingId(id === localEditingId ? null : id);
     const image = images.find(img => img.id === id);
     if (image) {
       setFormValues({
@@ -507,17 +520,30 @@ const Sidebar: React.FC<SidebarProps & {
         color: image.color
       });
     }
+    
+    // Scroll to the item when editing locally
+    setTimeout(() => {
+      const itemElement = itemRefs.current[id];
+      if (itemElement && sidebarContentRef.current) {
+        const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
+        sidebarContentRef.current.scrollTo({
+          top: scrollOffset,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   };
   
   // Handle done editing
   const handleDoneEditing = () => {
     setLocalEditingId(null);
-    // Also update parent state if callback provided
-    if (onSetEditingId) {
-      onSetEditingId(null);
-    }
   };
   
+  // Register item refs when they mount or remount
+  const registerItemRef = (id: string, element: HTMLDivElement | null) => {
+    itemRefs.current[id] = element;
+  };
+
   // Helper to render the height in different units
   const renderHeight = (heightCm: number) => {
     // Calculate ft/in from cm
@@ -610,6 +636,7 @@ const Sidebar: React.FC<SidebarProps & {
           return (
             <div 
               key={image.id}
+              ref={(el) => registerItemRef(image.id, el)}
               className={`p-3 mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-sm
                 ${selectedId === image.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}
                 ${isEditing ? 'rounded-b-none' : 'rounded-b'}
@@ -801,10 +828,6 @@ const Sidebar: React.FC<SidebarProps & {
                     onClick={() => {
                       onRemove(image.id);
                       setLocalEditingId(null);
-                      // Also update parent state if callback provided
-                      if (onSetEditingId) {
-                        onSetEditingId(null);
-                      }
                     }}
                     className="w-full py-2 mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200"
                   >
@@ -827,7 +850,7 @@ const Sidebar: React.FC<SidebarProps & {
     <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden sidebar-tabs ${className}`}>
       {renderActionBar()}
       
-      <div className="flex-1 overflow-y-auto">
+      <div ref={sidebarContentRef} className="flex-1 overflow-y-auto">
         {activeTab === 'add' && (
           <>
             <div className="p-4">
@@ -1046,7 +1069,6 @@ export default function Home() {
           onAdd={handleAddPerson} 
           onRemove={handleRemovePerson} 
           editingId={editingId}
-          onSetEditingId={setEditingId}
           className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
         />
 
@@ -1068,12 +1090,12 @@ export default function Home() {
                     (addTabButton as HTMLElement).click();
                   }
                 }
-                // Directly trigger the edit function in the sidebar component
-                const imageToEdit = images.find(img => img.id === id);
-                if (imageToEdit) {
-                  // Toggle edit sidebar for this image
+                
+                // Set the editingId with a slight delay to ensure DOM is ready
+                // This will trigger the sidebar scroll effect we implemented
+                setTimeout(() => {
                   setEditingId(id);
-                }
+                }, 50);
 
                 // On mobile, scroll to the sidebar
                 if (window.innerWidth < 768) {
