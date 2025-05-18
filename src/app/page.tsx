@@ -1,6 +1,6 @@
 'use client'; // Required for future state management and interactions
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ImageComparer from '@/components/ImageComparer';
 import ColorPicker from '@/components/ColorPicker';
 // import AddSection from '@/components/AddSection'; // To be replaced by Sidebar logic
@@ -39,6 +39,29 @@ const svgToDataUrl = (svgString: string, color = '#000000') => {
     .replace(/"/g, '%22');
   
   return `data:image/svg+xml;charset=utf-8,${encoded}`;
+};
+
+// Process uploaded image file to get data URL and aspect ratio
+const processImageFile = async (file: File): Promise<{ dataUrl: string, aspectRatio: number }> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const aspectRatio = img.width / img.height;
+        resolve({
+          dataUrl: e.target?.result as string,
+          aspectRatio
+        });
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 };
 
 // Aspect ratios that match the silhouettes
@@ -97,6 +120,7 @@ interface PersonFormData {
   heightCm: number;
   gender: 'male' | 'female';
   color: string;
+  customImage?: File;
 }
 
 // Add types for the PersonForm props
@@ -119,6 +143,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<PersonFormData>(initialData);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Calculate ft/in from cm for the inputs
   const ftInValues = useMemo(() => {
@@ -168,8 +194,36 @@ const PersonForm: React.FC<PersonFormProps> = ({
     setFormData(prev => ({ ...prev, color }));
   };
 
+  // Handle custom image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Preview the selected image
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedImagePreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    setFormData(prev => ({ ...prev, customImage: file }));
+  };
+
+  // Clear custom image selection
+  const clearCustomImage = () => {
+    setUploadedImagePreview(null);
+    setFormData(prev => {
+      const newData = { ...prev };
+      delete newData.customImage;
+      return newData;
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Get random values, but only apply them if user didn't provide input
     const randomColor = COLOR_OPTIONS[Math.floor(Math.random() * COLOR_OPTIONS.length)];
     const randomGender = Math.random() < 0.5 ? 'male' : 'female';
@@ -190,24 +244,50 @@ const PersonForm: React.FC<PersonFormProps> = ({
     const finalHeight = isHeightEmpty ? randomHeightCm : formData.heightCm;
     const finalColor = isColorDefault ? randomColor : formData.color;
     
-    onSubmit({
-      ...formData,
-      heightCm: finalHeight,
-      color: finalColor,
-      gender: finalGender,
-      aspectRatio: finalGender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO,
-      src: finalGender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
-      verticalOffsetCm: 0,
-      horizontalOffsetCm: 0
-    });
-    
-    // Reset form for adding a new person
-    setFormData({ 
-      name: '', 
-      heightCm: 0, 
-      gender: 'male',
-      color: COLOR_OPTIONS[0]
-    });
+    try {
+      // Handle custom image if provided
+      if (formData.customImage) {
+        const { dataUrl, aspectRatio } = await processImageFile(formData.customImage);
+        
+        onSubmit({
+          ...formData,
+          heightCm: finalHeight,
+          color: finalColor,
+          gender: finalGender,
+          aspectRatio: aspectRatio,
+          src: dataUrl,
+          verticalOffsetCm: 0,
+          horizontalOffsetCm: 0
+        });
+      } else {
+        // Use default silhouette if no custom image
+        onSubmit({
+          ...formData,
+          heightCm: finalHeight,
+          color: finalColor,
+          gender: finalGender,
+          aspectRatio: finalGender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO,
+          src: finalGender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
+          verticalOffsetCm: 0,
+          horizontalOffsetCm: 0
+        });
+      }
+      
+      // Reset form for adding a new person
+      setFormData({ 
+        name: '', 
+        heightCm: 0, 
+        gender: 'male',
+        color: COLOR_OPTIONS[0]
+      });
+      setUploadedImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      alert('Failed to process image. Please try a different image.');
+    }
   };
 
   return (
@@ -239,28 +319,28 @@ const PersonForm: React.FC<PersonFormProps> = ({
       {/* Name Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                      <input 
-                        type="text" 
+        <input 
+          type="text" 
           placeholder="(Optional)"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
           className="w-full p-2 border border-gray-300 rounded"
-                      />
-                    </div>
+        />
+      </div>
 
       {/* Height Input with Unit Toggle */}
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="block text-sm font-medium text-gray-700">Height</label>
-          <div className="flex border rounded overflow-hidden">
-            <button 
-              className={`px-2 py-1 text-xs ${heightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+          <div className="flex border border-gray-300 rounded overflow-hidden">
+            <button
+              className={`px-2 py-1 text-xs ${heightUnit === 'ft' ? 'bg-gray-200' : 'bg-white'}`}
               onClick={() => setHeightUnit('ft')}
             >
               ft
             </button>
-            <button 
-              className={`px-2 py-1 text-xs ${heightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+            <button
+              className={`px-2 py-1 text-xs ${heightUnit === 'cm' ? 'bg-gray-200' : 'bg-white'}`}
               onClick={() => setHeightUnit('cm')}
             >
               cm
@@ -269,8 +349,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
         </div>
         
         {heightUnit === 'ft' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="relative">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.feet}
@@ -282,18 +362,18 @@ const PersonForm: React.FC<PersonFormProps> = ({
               />
               <span className="absolute right-3 top-2 text-gray-500">ft</span>
             </div>
-            <div className="relative">
+            <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.inches}
                 onChange={e => handleFtInChange(e.target.value, 'inches')}
                 className="w-full p-2 border border-gray-300 rounded"
-                min="0" 
+                min="0"
                 max="11.99"
                 step="0.1"
-                placeholder="8"
+                placeholder="10"
               />
-              <span className="absolute right-3 top-2 text-gray-500">inch</span>
+              <span className="absolute right-3 top-2 text-gray-500">in</span>
             </div>
           </div>
         ) : (
@@ -310,7 +390,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
             <span className="absolute right-3 top-2 text-gray-500">cm</span>
           </div>
         )}
-                    </div>
+      </div>
 
       {/* Color Selection - Use the new ColorPicker component */}
       <div>
@@ -318,17 +398,51 @@ const PersonForm: React.FC<PersonFormProps> = ({
         <ColorPicker 
           selectedColor={formData.color} 
           onChange={handleColorChange} 
-                      />
-                    </div>
+        />
+      </div>
 
-      {/* Avatar Selection - Simplified for now */}
+      {/* Custom Image Upload */}
       <div>
-        <button className="flex items-center justify-center w-full p-2 border border-gray-300 rounded">
-          <span>Choose Avatar</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload Image (Optional)</label>
+        <div className="flex flex-col space-y-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+            id="custom-image-upload"
+          />
+          
+          {uploadedImagePreview ? (
+            <div className="relative w-full">
+              <img 
+                src={uploadedImagePreview} 
+                alt="Preview" 
+                className="h-24 object-contain mx-auto mb-2 border border-gray-300 p-1 rounded"
+              />
+              <button
+                onClick={clearCustomImage}
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-md"
+                title="Remove image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Choose Image</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add Person Button */}
@@ -352,20 +466,28 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   onRemove, 
   className // Accept className prop
 }) => {
-  // State to manage which tab is active
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
-  
-  // State to manage which silhouette is being edited
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  // State to manage editing height unit
+  const [formValues, setFormValues] = useState<PersonFormData>({
+    name: '',
+    heightCm: 0,
+    gender: 'male',
+    color: COLOR_OPTIONS[0]
+  });
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
   
   // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
-    setEditingId(id === editingId ? null : id);
-    // Also notify the parent component about the selection
-    onSelect(id === editingId ? null : id);
+    setEditingId(id);
+    const image = images.find(img => img.id === id);
+    if (image) {
+      setFormValues({
+        name: image.name,
+        heightCm: image.heightCm,
+        gender: image.gender,
+        color: image.color
+      });
+    }
   };
   
   // Handle done editing
@@ -445,6 +567,11 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
     return { backgroundColor: color };
   };
   
+  // This function determines if an image is a default SVG silhouette or a custom image
+  const isDefaultSilhouette = (src: string) => {
+    return src === MALE_SILHOUETTE_SVG || src === FEMALE_SILHOUETTE_SVG || src.includes('.svg');
+  };
+  
   // Render the list of existing silhouettes
   const renderSilhouetteList = () => {
     if (images.length === 0) {
@@ -458,35 +585,51 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
     return (
       <div className="p-2 space-y-2">
         {images.map(image => (
-          <div key={image.id} className="relative">
-            {/* Silhouette header with dropdown */}
-            <div 
-              className={`flex items-center justify-between p-2 rounded cursor-pointer ${
-                editingId === image.id 
-                  ? 'bg-purple-100 dark:bg-purple-900' 
-                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
-              }`}
-              style={{ backgroundColor: image.color }}
-              onClick={() => handleEditClick(image.id)}
-              data-silhouette-id={image.id}
-            >
-              <div className="flex items-center space-x-2 text-white">
-                <span className="font-semibold">{image.name || `Person ${image.id.slice(0, 3)}`}</span>
-                <span>{Math.round(image.heightCm)}cm</span>
+          <div 
+            key={image.id}
+            className={`p-3 mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-sm
+              ${selectedId === image.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}
+              ${editingId === image.id ? 'rounded-b-none' : 'rounded-b'}
+            `}
+          >
+            <div className="flex items-center gap-3">
+              {/* Avatar/Silhouette with coloring */}
+              <div 
+                className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${!isDefaultSilhouette(image.src) ? '' : getAvatarBgClass(image.color)}`}
+                style={isDefaultSilhouette(image.src) ? {
+                  // For SVG silhouettes, use mask approach
+                  maskImage: `url(${image.src})`,
+                  WebkitMaskImage: `url(${image.src})`,
+                  maskSize: 'cover',
+                  WebkitMaskSize: 'cover',
+                  maskPosition: 'center',
+                  WebkitMaskPosition: 'center',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat'
+                } : {
+                  // For custom images, use background image
+                  backgroundImage: `url(${image.src})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+                onClick={() => onSelect(image.id !== selectedId ? image.id : null)}
+              ></div>
+              
+              <div className="flex-grow">
+                <div className="font-medium">{image.name || `Person ${image.id.slice(0, 3)}`}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {Math.round(image.heightCm)}cm ({renderHeight(image.heightCm)})
+                </div>
               </div>
-              <div className="flex items-center">
-                <span className={`transform transition-transform duration-200 ${editingId === image.id ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
+              
+              <div>
                 <button 
-                  className="ml-2 text-white hover:text-red-300"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onRemove(image.id); 
-                  }}
+                  onClick={() => handleEditClick(image.id)}
+                  className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
               </div>
@@ -494,7 +637,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
             
             {/* Expanded editing section */}
             {editingId === image.id && (
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-b p-3 shadow-md">
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 {/* Done Editing button */}
                 <button 
                   className="w-full py-2 mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center"
@@ -542,7 +685,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
                   />
                 </div>
                 
-                {/* Height Input with Unit Toggle - similar to Add Person section */}
+                {/* Height Input with Unit Toggle */}
                 <div className="mb-3">
                   <div className="flex justify-between items-center mb-1">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
@@ -583,7 +726,7 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
                       <div className="relative">
                         <input 
                           type="number" 
-                          value={Number(((image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT).toFixed(6))}
+                          value={Number(((image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT).toFixed(2))}
                           onChange={(e) => {
                             const feet = Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT);
                             const inches = parseFloat(e.target.value) || 0;
@@ -592,10 +735,10 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
                           }}
                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                           min="0" 
-                          max="11.999999"
-                          step="0.000001"
+                          max="11.99"
+                          step="0.01"
                         />
-                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">inch</span>
+                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">in</span>
                       </div>
                     </div>
                   ) : (
@@ -615,72 +758,26 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
                 
                 {/* Color Selection */}
                 <div className="mb-3">
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {COLOR_OPTIONS.map((color) => (
-                      <button
-                        key={color}
-                        className={`w-10 h-10 rounded-full hover:ring-2 ${image.color === color ? 'ring-2 ring-blue-500' : ''}`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => onUpdate(image.id, { color })}
-                        aria-label={`Select color ${color}`}
-                      />
-                    ))}
-                    <button className="w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                  <ColorPicker 
+                    selectedColor={image.color}
+                    onChange={(color) => onUpdate(image.id, { color })}
+                  />
                 </div>
-                
-                {/* Avatar Selection - Dropdown */}
-                <div className="mb-3">
-                  <button className="w-full py-2 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded flex items-center justify-center">
-                    Choose Avatar
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-                
-                {/* Adjust Alignment Section */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Adjust Alignment</span>
-                    <button className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-1">
-                    <button 
-                      className="p-3 bg-blue-500 text-white rounded-lg"
-                      onClick={() => onUpdate(image.id, { verticalOffsetCm: image.verticalOffsetCm + 5 })}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                    
-                    <input 
-                      type="number" 
-                      value={image.verticalOffsetCm}
-                      onChange={(e) => onUpdate(image.id, { verticalOffsetCm: parseFloat(e.target.value) || 0 })}
-                      className="w-16 p-2 text-center border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
-                    />
-                    
-                    <button 
-                      className="p-3 bg-blue-500 text-white rounded-lg"
-                      onClick={() => onUpdate(image.id, { verticalOffsetCm: image.verticalOffsetCm - 5 })}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+
+                {/* Delete Button */}
+                <button
+                  onClick={() => {
+                    onRemove(image.id);
+                    setEditingId(null);
+                  }}
+                  className="w-full py-2 mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
               </div>
             )}
           </div>
@@ -872,8 +969,9 @@ export default function Home() {
           ? { 
               ...img, 
               ...updates,
-              // If gender changed, update the SVG and aspect ratio
-              ...(updates.gender && updates.gender !== img.gender ? {
+              // If gender changed and there's no custom image, update the SVG and aspect ratio
+              ...(updates.gender && updates.gender !== img.gender && 
+                (img.src === MALE_SILHOUETTE_SVG || img.src === FEMALE_SILHOUETTE_SVG) ? {
                 src: updates.gender === 'male' ? MALE_SILHOUETTE_SVG : FEMALE_SILHOUETTE_SVG,
                 aspectRatio: updates.gender === 'male' ? MALE_ASPECT_RATIO : FEMALE_ASPECT_RATIO
               } : {}),

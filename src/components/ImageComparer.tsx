@@ -493,16 +493,25 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                     <div 
                       className="w-full h-full bg-contain bg-no-repeat bg-center overflow-hidden transition-opacity duration-200 group-hover:opacity-80"
                       style={{ 
-                        // Use mask-image to create a silhouette effect with custom color
-                        WebkitMaskImage: `url("${image.src}")`,
-                        WebkitMaskSize: 'contain',
-                        WebkitMaskRepeat: 'no-repeat',
-                        WebkitMaskPosition: 'center',
-                        maskImage: `url("${image.src}")`,
-                        maskSize: 'contain',
-                        maskRepeat: 'no-repeat',
-                        maskPosition: 'center',
-                        backgroundColor: image.color // Use the color for the fill
+                        // Check if image is an SVG (from default silhouettes) or a custom uploaded image
+                        ...(image.src.includes('.svg') || image.src.startsWith('/images/') ? {
+                          // For SVG images, use mask-image to create a silhouette effect with custom color
+                          WebkitMaskImage: `url("${image.src}")`,
+                          WebkitMaskSize: 'contain',
+                          WebkitMaskRepeat: 'no-repeat',
+                          WebkitMaskPosition: 'center',
+                          maskImage: `url("${image.src}")`,
+                          maskSize: 'contain',
+                          maskRepeat: 'no-repeat',
+                          maskPosition: 'center',
+                          backgroundColor: image.color // Use the color for the fill
+                        } : {
+                          // For non-SVG images, use background-image directly
+                          backgroundImage: `url("${image.src}")`,
+                          backgroundSize: 'contain',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'center'
+                        })
                       }}
                       title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
                       onClick={(e) => {
