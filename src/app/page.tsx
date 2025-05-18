@@ -457,7 +457,11 @@ const PersonForm: React.FC<PersonFormProps> = ({
 };
 
 // Sidebar component
-const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string | null }> = ({ 
+const Sidebar: React.FC<SidebarProps & { 
+  className?: string, 
+  editingId?: string | null,
+  onSetEditingId?: (id: string | null) => void 
+}> = ({ 
   images, 
   selectedId, 
   onSelect, 
@@ -465,7 +469,8 @@ const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string 
   onAdd, 
   onRemove,
   editingId,
-  className // Accept className prop
+  onSetEditingId,
+  className 
 }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
   const [localEditingId, setLocalEditingId] = useState<string | null>(null);
@@ -481,8 +486,22 @@ const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string 
   
   // Sync parent editingId with local state
   useEffect(() => {
+    // Only update if editingId is explicitly defined (null is a valid value)
     if (editingId !== undefined) {
       setLocalEditingId(editingId);
+      
+      // If a new image is being edited, update the form values
+      if (editingId !== null) {
+        const image = images.find(img => img.id === editingId);
+        if (image) {
+          setFormValues({
+            name: image.name,
+            heightCm: image.heightCm,
+            gender: image.gender,
+            color: image.color
+          });
+        }
+      }
       
       // Scroll to the edited item when editingId changes
       if (editingId && sidebarContentRef.current && itemRefs.current[editingId]) {
@@ -506,11 +525,18 @@ const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string 
         }, 50);
       }
     }
-  }, [editingId]);
+  }, [editingId, images]);
   
   // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
-    setLocalEditingId(id === localEditingId ? null : id);
+    const newEditingId = id === localEditingId ? null : id;
+    setLocalEditingId(newEditingId);
+    
+    // Sync with parent state
+    if (onSetEditingId) {
+      onSetEditingId(newEditingId);
+    }
+    
     const image = images.find(img => img.id === id);
     if (image) {
       setFormValues({
@@ -522,21 +548,27 @@ const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string 
     }
     
     // Scroll to the item when editing locally
-    setTimeout(() => {
-      const itemElement = itemRefs.current[id];
-      if (itemElement && sidebarContentRef.current) {
-        const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
-        sidebarContentRef.current.scrollTo({
-          top: scrollOffset,
-          behavior: 'smooth'
-        });
-      }
-    }, 50);
+    if (newEditingId !== null) {
+      setTimeout(() => {
+        const itemElement = itemRefs.current[id];
+        if (itemElement && sidebarContentRef.current) {
+          const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
+          sidebarContentRef.current.scrollTo({
+            top: scrollOffset,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
+    }
   };
   
-  // Handle done editing
+  // Handle done editing - update to also call the parent function
   const handleDoneEditing = () => {
     setLocalEditingId(null);
+    // Also notify the parent to reset editingId
+    if (onSetEditingId) {
+      onSetEditingId(null);
+    }
   };
   
   // Register item refs when they mount or remount
@@ -666,7 +698,16 @@ const Sidebar: React.FC<SidebarProps & { className?: string, editingId?: string 
                       backgroundRepeat: 'no-repeat'
                     })
                   }}
-                  onClick={() => onSelect(image.id !== selectedId ? image.id : null)}
+                  onClick={(e) => {
+                    // First select this image
+                    onSelect(image.id !== selectedId ? image.id : null);
+                    
+                    // Then toggle the edit mode if clicked while already selected
+                    if (image.id === selectedId) {
+                      e.stopPropagation();
+                      handleEditClick(image.id);
+                    }
+                  }}
                 ></div>
                 
                 <div className="flex-grow">
@@ -1069,6 +1110,7 @@ export default function Home() {
           onAdd={handleAddPerson} 
           onRemove={handleRemovePerson} 
           editingId={editingId}
+          onSetEditingId={setEditingId}
           className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
         />
 
@@ -1080,7 +1122,12 @@ export default function Home() {
             <ImageComparer 
               images={images} 
               onEdit={(id) => {
+                // If the image is already being edited, then clicking it should close the edit sidebar
+                const isAlreadyEditing = editingId === id;
+                
+                // Always set selectedId to the clicked image
                 setSelectedId(id);
+                
                 // Ensure the activeTab is set to 'add' and the editingId is set to the clicked image
                 const sidebarElement = document.querySelector('.sidebar-tabs');
                 if (sidebarElement) {
@@ -1091,10 +1138,9 @@ export default function Home() {
                   }
                 }
                 
-                // Set the editingId with a slight delay to ensure DOM is ready
-                // This will trigger the sidebar scroll effect we implemented
+                // Toggle the editing state - if already editing this image, close it
                 setTimeout(() => {
-                  setEditingId(id);
+                  setEditingId(isAlreadyEditing ? null : id);
                 }, 50);
 
                 // On mobile, scroll to the sidebar
