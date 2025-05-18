@@ -456,18 +456,24 @@ const PersonForm: React.FC<PersonFormProps> = ({
   );
 };
 
-// Sidebar component with tabs and functionality for adding/editing silhouettes
-const Sidebar: React.FC<SidebarProps & { className?: string }> = ({ 
+// Sidebar component
+const Sidebar: React.FC<SidebarProps & { 
+  className?: string, 
+  editingId?: string | null,
+  onSetEditingId?: (id: string | null) => void 
+}> = ({ 
   images, 
   selectedId, 
   onSelect, 
   onUpdate, 
   onAdd, 
-  onRemove, 
+  onRemove,
+  editingId,
+  onSetEditingId,
   className // Accept className prop
 }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [localEditingId, setLocalEditingId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<PersonFormData>({
     name: '',
     heightCm: 0,
@@ -476,9 +482,22 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   });
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
   
+  // Sync parent editingId with local state
+  useEffect(() => {
+    if (editingId !== undefined) {
+      setLocalEditingId(editingId);
+    }
+  }, [editingId]);
+  
   // Handle clicking the edit button for a silhouette
   const handleEditClick = (id: string) => {
-    setEditingId(id);
+    const newEditingId = id === localEditingId ? null : id;
+    setLocalEditingId(newEditingId);
+    // Also update parent state if callback provided
+    if (onSetEditingId) {
+      onSetEditingId(newEditingId);
+    }
+    
     const image = images.find(img => img.id === id);
     if (image) {
       setFormValues({
@@ -492,7 +511,11 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
   
   // Handle done editing
   const handleDoneEditing = () => {
-    setEditingId(null);
+    setLocalEditingId(null);
+    // Also update parent state if callback provided
+    if (onSetEditingId) {
+      onSetEditingId(null);
+    }
   };
   
   // Helper to render the height in different units
@@ -567,11 +590,6 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
     return { backgroundColor: color };
   };
   
-  // This function determines if an image is a default SVG silhouette or a custom image
-  const isDefaultSilhouette = (src: string) => {
-    return src === MALE_SILHOUETTE_SVG || src === FEMALE_SILHOUETTE_SVG || src.includes('.svg');
-  };
-  
   // Render the list of existing silhouettes
   const renderSilhouetteList = () => {
     if (images.length === 0) {
@@ -584,204 +602,222 @@ const Sidebar: React.FC<SidebarProps & { className?: string }> = ({
     
     return (
       <div className="p-2 space-y-2">
-        {images.map(image => (
-          <div 
-            key={image.id}
-            className={`p-3 mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-sm
-              ${selectedId === image.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}
-              ${editingId === image.id ? 'rounded-b-none' : 'rounded-b'}
-            `}
-          >
-            <div className="flex items-center gap-3">
-              {/* Avatar/Silhouette with coloring */}
-              <div 
-                className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${!isDefaultSilhouette(image.src) ? '' : getAvatarBgClass(image.color)}`}
-                style={isDefaultSilhouette(image.src) ? {
-                  // For SVG silhouettes, use mask approach
-                  maskImage: `url(${image.src})`,
-                  WebkitMaskImage: `url(${image.src})`,
-                  maskSize: 'cover',
-                  WebkitMaskSize: 'cover',
-                  maskPosition: 'center',
-                  WebkitMaskPosition: 'center',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskRepeat: 'no-repeat'
-                } : {
-                  // For custom images, use background image
-                  backgroundImage: `url(${image.src})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat'
-                }}
-                onClick={() => onSelect(image.id !== selectedId ? image.id : null)}
-              ></div>
-              
-              <div className="flex-grow">
-                <div className="font-medium">{image.name || `Person ${image.id.slice(0, 3)}`}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {Math.round(image.heightCm)}cm ({renderHeight(image.heightCm)})
+        {images.map(image => {
+          const isDefaultSilhouette = image.src.includes('.svg') || image.src.startsWith('/images/');
+          const currentEditingId = localEditingId !== null ? localEditingId : editingId;
+          const isEditing = currentEditingId === image.id;
+          
+          return (
+            <div 
+              key={image.id}
+              className={`p-3 mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-sm
+                ${selectedId === image.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}
+                ${isEditing ? 'rounded-b-none' : 'rounded-b'}
+              `}
+            >
+              <div className="flex items-center gap-3">
+                {/* Avatar/Silhouette with coloring */}
+                <div 
+                  className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${!isDefaultSilhouette ? '' : ''}`}
+                  style={{
+                    ...(isDefaultSilhouette ? {
+                      // For SVG silhouettes, use mask approach
+                      maskImage: `url(${image.src})`,
+                      WebkitMaskImage: `url(${image.src})`,
+                      maskSize: 'cover',
+                      WebkitMaskSize: 'cover',
+                      maskPosition: 'center',
+                      WebkitMaskPosition: 'center',
+                      maskRepeat: 'no-repeat',
+                      WebkitMaskRepeat: 'no-repeat',
+                      backgroundColor: image.color // Use the color for the fill
+                    } : {
+                      // For custom images, use background image
+                      backgroundImage: `url(${image.src})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    })
+                  }}
+                  onClick={() => onSelect(image.id !== selectedId ? image.id : null)}
+                ></div>
+                
+                <div className="flex-grow">
+                  <div className="font-medium">{image.name || `Person ${image.id.slice(0, 3)}`}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {Math.round(image.heightCm)}cm ({renderHeight(image.heightCm)})
+                  </div>
+                </div>
+                
+                <div>
+                  <button 
+                    onClick={() => handleEditClick(image.id)}
+                    className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               
-              <div>
-                <button 
-                  onClick={() => handleEditClick(image.id)}
-                  className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+              {/* Expanded editing section */}
+              {isEditing && (
+                <div 
+                  className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 rounded-b"
+                  style={{
+                    backgroundColor: isDefaultSilhouette ? `${image.color}15` : 'transparent' // Use silhouette color with alpha for background
+                  }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            {/* Expanded editing section */}
-            {editingId === image.id && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                {/* Done Editing button */}
-                <button 
-                  className="w-full py-2 mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center"
-                  onClick={handleDoneEditing}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Done Editing
-                </button>
-                
-                {/* Gender Selection */}
-                <div className="grid grid-cols-2 gap-1 mb-3">
-                  <button
-                    className={`py-2 px-4 rounded-l border ${
-                      image.gender === 'male' 
-                        ? 'bg-blue-100 border-blue-500' 
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
-                    }`}
-                    onClick={() => onUpdate(image.id, { gender: 'male' })}
+                  {/* Done Editing button */}
+                  <button 
+                    className="w-full py-2 mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center"
+                    onClick={handleDoneEditing}
                   >
-                    Male
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Done Editing
                   </button>
-                  <button
-                    className={`py-2 px-4 rounded-r border ${
-                      image.gender === 'female' 
-                        ? 'bg-blue-100 border-blue-500' 
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
-                    }`}
-                    onClick={() => onUpdate(image.id, { gender: 'female' })}
-                  >
-                    Female
-                  </button>
-                </div>
-                
-                {/* Name Input */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="Enter name"
-                    value={image.name}
-                    onChange={(e) => onUpdate(image.id, { name: e.target.value })}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
-                  />
-                </div>
-                
-                {/* Height Input with Unit Toggle */}
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
-                    <div className="flex border rounded overflow-hidden">
-                      <button 
-                        className={`px-2 py-1 text-xs ${editingHeightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
-                        onClick={() => setEditingHeightUnit('ft')}
-                      >
-                        ft
-                      </button>
-                      <button 
-                        className={`px-2 py-1 text-xs ${editingHeightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
-                        onClick={() => setEditingHeightUnit('cm')}
-                      >
-                        cm
-                      </button>
-                    </div>
+                  
+                  {/* Gender Selection */}
+                  <div className="grid grid-cols-2 gap-1 mb-3">
+                    <button
+                      className={`py-2 px-4 rounded-l border ${
+                        image.gender === 'male' 
+                          ? 'bg-blue-100 border-blue-500' 
+                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+                      }`}
+                      onClick={() => onUpdate(image.id, { gender: 'male' })}
+                    >
+                      Male
+                    </button>
+                    <button
+                      className={`py-2 px-4 rounded-r border ${
+                        image.gender === 'female' 
+                          ? 'bg-blue-100 border-blue-500' 
+                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+                      }`}
+                      onClick={() => onUpdate(image.id, { gender: 'female' })}
+                    >
+                      Female
+                    </button>
                   </div>
                   
-                  {editingHeightUnit === 'ft' ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="relative">
-                        <input 
-                          type="number" 
-                          value={Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT)}
-                          onChange={(e) => {
-                            const feet = parseFloat(e.target.value) || 0;
-                            const inches = (image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT;
-                            const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
-                            onUpdate(image.id, { heightCm: newHeightCm });
-                          }}
-                          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
-                          min="0"
-                          step="1"
-                        />
-                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">ft</span>
+                  {/* Name Input */}
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Enter name"
+                      value={image.name}
+                      onChange={(e) => onUpdate(image.id, { name: e.target.value })}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                    />
+                  </div>
+                  
+                  {/* Height Input with Unit Toggle */}
+                  <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
+                      <div className="flex border rounded overflow-hidden">
+                        <button 
+                          className={`px-2 py-1 text-xs ${editingHeightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                          onClick={() => setEditingHeightUnit('ft')}
+                        >
+                          ft
+                        </button>
+                        <button 
+                          className={`px-2 py-1 text-xs ${editingHeightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                          onClick={() => setEditingHeightUnit('cm')}
+                        >
+                          cm
+                        </button>
                       </div>
+                    </div>
+                    
+                    {editingHeightUnit === 'ft' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            value={Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT)}
+                            onChange={(e) => {
+                              const feet = parseFloat(e.target.value) || 0;
+                              const inches = (image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT;
+                              const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
+                              onUpdate(image.id, { heightCm: newHeightCm });
+                            }}
+                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                            min="0"
+                            step="1"
+                          />
+                          <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">ft</span>
+                        </div>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            value={Number(((image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT).toFixed(2))}
+                            onChange={(e) => {
+                              const feet = Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT);
+                              const inches = parseFloat(e.target.value) || 0;
+                              const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
+                              onUpdate(image.id, { heightCm: newHeightCm });
+                            }}
+                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                            min="0" 
+                            max="11.99"
+                            step="0.01"
+                          />
+                          <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">in</span>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="relative">
                         <input 
                           type="number" 
-                          value={Number(((image.heightCm / CM_PER_INCH) % INCHES_PER_FOOT).toFixed(2))}
-                          onChange={(e) => {
-                            const feet = Math.floor(image.heightCm / CM_PER_INCH / INCHES_PER_FOOT);
-                            const inches = parseFloat(e.target.value) || 0;
-                            const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
-                            onUpdate(image.id, { heightCm: newHeightCm });
-                          }}
+                          value={Math.round(image.heightCm)}
+                          onChange={(e) => onUpdate(image.id, { heightCm: parseFloat(e.target.value) || 0 })}
                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                           min="0" 
-                          max="11.99"
-                          step="0.01"
+                          step="1"
                         />
-                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">in</span>
+                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">cm</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        value={Math.round(image.heightCm)}
-                        onChange={(e) => onUpdate(image.id, { heightCm: parseFloat(e.target.value) || 0 })}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
-                        min="0" 
-                        step="1"
-                      />
-                      <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">cm</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Color Selection */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-                  <ColorPicker 
-                    selectedColor={image.color}
-                    onChange={(color) => onUpdate(image.id, { color })}
-                  />
-                </div>
+                    )}
+                  </div>
+                  
+                  {/* Color Selection */}
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                    <ColorPicker 
+                      selectedColor={image.color}
+                      onChange={(color) => onUpdate(image.id, { color })}
+                    />
+                  </div>
 
-                {/* Delete Button */}
-                <button
-                  onClick={() => {
-                    onRemove(image.id);
-                    setEditingId(null);
-                  }}
-                  className="w-full py-2 mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => {
+                      onRemove(image.id);
+                      setLocalEditingId(null);
+                      // Also update parent state if callback provided
+                      if (onSetEditingId) {
+                        onSetEditingId(null);
+                      }
+                    }}
+                    className="w-full py-2 mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -886,6 +922,7 @@ export default function Home() {
   // Initialize with default empty state
   const [images, setImages] = useState<ManagedImage[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // --- Load state from localStorage on initial client mount ---
   useEffect(() => {
@@ -929,6 +966,13 @@ export default function Home() {
       localStorage.setItem('heightCompareSelectedId', selectedId === null ? 'null' : selectedId);
     }
   }, [selectedId]); // Dependency array includes selectedId
+
+  // Reset editingId when selectedId changes to null
+  useEffect(() => {
+    if (selectedId === null) {
+      setEditingId(null);
+    }
+  }, [selectedId]);
 
   // --- Callbacks --- 
   // Add new person
@@ -1001,7 +1045,8 @@ export default function Home() {
           onUpdate={handleUpdatePerson} 
           onAdd={handleAddPerson} 
           onRemove={handleRemovePerson} 
-          // Assuming className prop is correctly handled within Sidebar definition for layout
+          editingId={editingId}
+          onSetEditingId={setEditingId}
           className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
         />
 
@@ -1014,13 +1059,7 @@ export default function Home() {
               images={images} 
               onEdit={(id) => {
                 setSelectedId(id);
-                // Also set the editingId on the Sidebar component
-                // Find existing silhouette in the sidebar and "click" it
-                const silhouette = document.querySelector(`[data-silhouette-id="${id}"]`);
-                if (silhouette) {
-                  (silhouette as HTMLElement).click();
-                }
-                // Find the sidebar reference to set editing ID
+                // Ensure the activeTab is set to 'add' and the editingId is set to the clicked image
                 const sidebarElement = document.querySelector('.sidebar-tabs');
                 if (sidebarElement) {
                   // Set the active tab to 'add' to ensure the editing interface is visible
@@ -1029,6 +1068,13 @@ export default function Home() {
                     (addTabButton as HTMLElement).click();
                   }
                 }
+                // Directly trigger the edit function in the sidebar component
+                const imageToEdit = images.find(img => img.id === id);
+                if (imageToEdit) {
+                  // Toggle edit sidebar for this image
+                  setEditingId(id);
+                }
+
                 // On mobile, scroll to the sidebar
                 if (window.innerWidth < 768) {
                   window.scrollTo({
