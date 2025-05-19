@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, ChangeEvent, useCallback } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 
 interface ControlPanelProps {
   onAddImage: (file: File) => void;

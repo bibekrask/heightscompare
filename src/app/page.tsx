@@ -7,10 +7,7 @@ import ColorPicker from '@/components/ColorPicker';
 // import EditSection from '@/components/EditSection'; // To be replaced by Sidebar logic
 
 // --- Constants and Shared Data --- 
-const DEFAULT_HEIGHT_CM = 180;
 const MAX_IMAGES = 50;
-const OFFSET_MIN_CM = -100;
-const OFFSET_MAX_CM = 100;
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
 
@@ -27,19 +24,6 @@ const COLOR_OPTIONS = [
 // Silhouette SVGs - More detailed and accurate than simple rectangles
 const MALE_SILHOUETTE_SVG = '/images/male.svg'
 const FEMALE_SILHOUETTE_SVG = '/images/female.svg'
-
-
-// Convert SVG string to data URL
-const svgToDataUrl = (svgString: string, color = '#000000') => {
-  // Replace the currentColor with the specified color
-  const coloredSvg = svgString.replace('currentColor', color);
-  // Encode the SVG for use in data URL
-  const encoded = encodeURIComponent(coloredSvg)
-    .replace(/'/g, '%27')
-    .replace(/"/g, '%22');
-  
-  return `data:image/svg+xml;charset=utf-8,${encoded}`;
-};
 
 // Process uploaded image file to get data URL and aspect ratio
 const processImageFile = async (file: File): Promise<{ dataUrl: string, aspectRatio: number }> => {
@@ -86,7 +70,7 @@ const AppHeader = () => (
     </div>
     <div className="flex items-center space-x-2">
       <button className="text-sm">Login</button>
-      <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up — It's Free</button>
+      <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
     </div>
   </header>
 );
@@ -154,7 +138,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
   const ftInValues = useMemo(() => {
     // If height is 0 (empty), return empty values
     if (formData.heightCm === 0) {
-      return { feet: '' as any, inches: '' as any };
+      return { feet: '' as string, inches: '' as string };
     }
     const inches = formData.heightCm / CM_PER_INCH;
     const feet = Math.floor(inches / 12);
@@ -167,8 +151,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
     const newValue = value === '' ? 0 : parseFloat(value);
     if (isNaN(newValue)) return;
     
-    let feet = field === 'feet' ? newValue : (ftInValues.feet === '' ? 0 : ftInValues.feet);
-    let inches = field === 'inches' ? newValue : (ftInValues.inches === '' ? 0 : ftInValues.inches);
+    let feet = field === 'feet' ? newValue : (ftInValues.feet === '' ? 0 : Number(ftInValues.feet));
+    let inches = field === 'inches' ? newValue : (ftInValues.inches === '' ? 0 : Number(ftInValues.inches));
     
     // Ensure valid ranges
     feet = Math.max(0, feet);
@@ -475,12 +459,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
   const [localEditingId, setLocalEditingId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<PersonFormData>({
-    name: '',
-    heightCm: 0,
-    gender: 'male',
-    color: COLOR_OPTIONS[0]
-  });
+  // Removed unused state
+  // const [formValues, setFormValues] = useState<PersonFormData>({
+  //   name: '',
+  //   heightCm: 0,
+  //   gender: 'male',
+  //   color: COLOR_OPTIONS[0]
+  // });
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
@@ -491,17 +476,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (editingId !== undefined) {
       setLocalEditingId(editingId);
       
-      // If a new image is being edited, update the form values
+      // If a new image is being edited
       if (editingId !== null) {
-        const image = images.find(img => img.id === editingId);
-        if (image) {
-          setFormValues({
-            name: image.name,
-            heightCm: image.heightCm,
-            gender: image.gender,
-            color: image.color
-          });
-        }
+        // Removed form value update
+        // const image = images.find(img => img.id === editingId);
+        // if (image) {
+        //   setFormValues({
+        //     name: image.name,
+        //     heightCm: image.heightCm,
+        //     gender: image.gender,
+        //     color: image.color
+        //   });
+        // }
       }
       
       // Scroll to the edited item when editingId changes
@@ -510,9 +496,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         setTimeout(() => {
           const itemElement = itemRefs.current[editingId];
           if (itemElement && sidebarContentRef.current) {
+            // Remove unused rect variables
             // Get the position of the item relative to the sidebar
-            const itemRect = itemElement.getBoundingClientRect();
-            const sidebarRect = sidebarContentRef.current.getBoundingClientRect();
+            // const itemRect = itemElement.getBoundingClientRect();
+            // const sidebarRect = sidebarContentRef.current.getBoundingClientRect();
             
             // Calculate offset to scroll to (accounting for some padding)
             const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
@@ -538,15 +525,16 @@ const Sidebar: React.FC<SidebarProps> = ({
       onSetEditingId(newEditingId);
     }
     
-    const image = images.find(img => img.id === id);
-    if (image) {
-      setFormValues({
-        name: image.name,
-        heightCm: image.heightCm,
-        gender: image.gender,
-        color: image.color
-      });
-    }
+    // Removed form value update
+    // const image = images.find(img => img.id === id);
+    // if (image) {
+    //   setFormValues({
+    //     name: image.name,
+    //     heightCm: image.heightCm,
+    //     gender: image.gender,
+    //     color: image.color
+    //   });
+    // }
     
     // Scroll to the item when editing locally
     if (newEditingId !== null) {
@@ -642,12 +630,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       </button>
     </div>
   );
-  
-  // Helper to choose avatar background color
-  const getAvatarBgClass = (color: string) => {
-    // Simply use the color directly instead of mapping
-    return { backgroundColor: color };
-  };
   
   // Render the list of existing silhouettes
   const renderSilhouetteList = () => {
@@ -1029,26 +1011,9 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
 );
 
 // --- Helper Functions ---
-// Formatted string for feet and inches
-const cmToFtInString = (cm: number): string => {
-  const { feet, inches } = cmToFtInObj(cm);
-  return `${feet}' ${inches}"`;
-};
+// Removed unused function
 
-// Returns object {feet, inches} (inches rounded to 1 decimal for display/input)
-const cmToFtInObj = (cm: number): { feet: number, inches: number } => {
-  if (isNaN(cm)) return { feet: 0, inches: 0 };
-  const nonNegativeCm = Math.max(0, cm);
-  const totalInches = nonNegativeCm / CM_PER_INCH;
-  const feet = Math.floor(totalInches / INCHES_PER_FOOT);
-  let inches = Math.round((totalInches % INCHES_PER_FOOT) * 10) / 10; 
-  let adjustedFeet = feet;
-  if (inches >= 11.95) { 
-    adjustedFeet += 1;
-    inches = 0;
-  }
-  return { feet: adjustedFeet, inches: parseFloat(inches.toFixed(1)) }; 
-};
+// Removed unused function
 
 export default function Home() {
   // Initialize with default empty state

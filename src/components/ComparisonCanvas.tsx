@@ -16,12 +16,11 @@ export interface DisplayImage {
 
 interface ComparisonCanvasProps {
   images: DisplayImage[];
-  scaleCmPerPixel: number; // Determines how many CM each pixel represents vertically
   onRemoveImage: (id: string) => void;
   onSetHeight: (id: string, heightCm: number) => void; // Add prop for setting absolute height
 }
 
-const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({ images, scaleCmPerPixel, onRemoveImage, onSetHeight }) => {
+const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({ images, onRemoveImage, onSetHeight }) => {
 
   const canvasHeight = 800; // Example fixed height in pixels
   // Local state for input fields (keep for direct entry)

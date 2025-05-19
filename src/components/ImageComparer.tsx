@@ -31,14 +31,13 @@ const SCALE_TOP_FACTOR = 1.1; // Show 10% margin above highest content
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
 const MAJOR_INTERVALS = 10; // Number of intervals for major lines (e.g., every 10% of range)
-const NEGATIVE_MAJOR_INTERVALS = 1; // How many major steps below 0
 const LABEL_WIDTH_PX = 60; // Approx width for side labels (adjust as needed)
 const FIGURE_LABEL_OFFSET_Y = -1; // Pixels above figure head for label - Adjusted to -1
 const epsilon = 1e-6;
 
 // Constants for infinite scrolling
-const SCROLL_THRESHOLD = 100; // px from top/bottom to trigger range expansion
-const RANGE_INCREMENT_FACTOR = 0.5; // How much to increase range by when scrolled to edge
+// const SCROLL_THRESHOLD = 100; // px from top/bottom to trigger range expansion
+// const RANGE_INCREMENT_FACTOR = 0.5; // How much to increase range by when scrolled to edge
 
 // --- Helper Functions (cmToFtIn, cmToCmLabel, generateHorizontalMarks can be adapted) ---
 const cmToFtIn = (cm: number): string => {
@@ -62,7 +61,11 @@ const cmToCmLabel = (cm: number): string => {
     return `${Math.round(cm)}`; // Just the number for the scale
 };
 
-const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any[] => {
+const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): Array<{
+  valueCm: number;
+  labelCm: string;
+  labelFtIn: string;
+}> => {
     const totalRange = scaleTopCm - scaleBottomCm;
     if (totalRange <= epsilon) return [];
 
@@ -92,7 +95,11 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): any
     majorStep = Math.max(10, majorStep); 
     // --- End Dynamic Nice Step Calculation ---
 
-    const majorMarks: any[] = [];
+    const majorMarks: Array<{
+      valueCm: number;
+      labelCm: string;
+      labelFtIn: string;
+    }> = [];
 
     // Generate marks based on the step for the full range
     for (let currentCm = Math.ceil(scaleBottomCm / majorStep) * majorStep; 
@@ -143,7 +150,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const figuresContainerRef = useRef<HTMLDivElement>(null);
   const [containerHeightPx, setContainerHeightPx] = useState<number>(0);
-  const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
+  // Remove unused state
+  // const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
   const [availableWidthPx, setAvailableWidthPx] = useState<number>(0);
   
   // State for drag functionality
@@ -180,7 +188,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
         availableWidth = Math.max(100, width - (LABEL_WIDTH_PX * 2 + 16)); // 16px for padding
         
         setContainerHeightPx(height > 0 ? height : 0);
-        setContainerWidthPx(width > 0 ? width : 0);
+        // Removed unused state update
+        // setContainerWidthPx(width > 0 ? width : 0);
         setAvailableWidthPx(availableWidth > 0 ? availableWidth : 0);
     }
   }, [images]); // Rerun if images change (potential height change)
@@ -516,7 +525,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                 maxWidth: '100%'
               }}
             >
-                {pixelsPerCm > 0 && images.map((image, index) => {
+                {pixelsPerCm > 0 && images.map((image) => {
                     const dimensions = figureDimensions.find(d => d.id === image.id);
                     if (!dimensions) return null;
                     
@@ -627,11 +636,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                           })
                         }}
                         title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
-                        onClick={(e) => {
-                          if (!isDragging) {
-                            onEdit && onEdit(image.id);
-                          }
-                        }}
+                        onClick={() => {
+  if (!isDragging) {
+    if (onEdit) {
+      onEdit(image.id);
+    }
+  }
+}}
                         onMouseDown={(e) => handleMouseDown(e, image.id)}
                         onTouchStart={(e) => handleTouchStart(e, image.id)}
                       ></div>
