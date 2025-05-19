@@ -22,6 +22,7 @@ interface ImageComparerProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onImageUpdate?: (id: string, updates: Partial<ManagedImage>) => void;
+  onZoomChange?: (newZoom: number) => void; // Add zoom change handler
 }
 
 // --- Constants --- 
@@ -134,7 +135,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   zoomLevel = 50,
   onEdit, 
   onDelete,
-  onImageUpdate
+  onImageUpdate,
+  onZoomChange
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const figuresContainerRef = useRef<HTMLDivElement>(null);
@@ -148,11 +150,20 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [dragStartY, setDragStartY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // State for infinite scroll
-  const [customScaleTopCm, setCustomScaleTopCm] = useState<number | null>(null);
-  const [customScaleBottomCm, setCustomScaleBottomCm] = useState<number | null>(null);
-  const [scrollPosition, setScrollPosition] = useState<number>(0);
-  const [isScrolling, setIsScrolling] = useState<boolean>(false);
+  // Internal zoom state - tied to parent's zoomLevel prop
+  const [internalZoomLevel, setInternalZoomLevel] = useState<number>(zoomLevel);
+
+  // Update internal zoom when prop changes
+  useEffect(() => {
+    setInternalZoomLevel(zoomLevel);
+  }, [zoomLevel]);
+  
+  // Propagate zoom changes to parent
+  useEffect(() => {
+    if (internalZoomLevel !== zoomLevel && onZoomChange) {
+      onZoomChange(internalZoomLevel);
+    }
+  }, [internalZoomLevel, zoomLevel, onZoomChange]);
 
   // Effect to measure container dimensions
   useLayoutEffect(() => {
@@ -170,9 +181,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
         setContainerWidthPx(width > 0 ? width : 0);
         setAvailableWidthPx(availableWidth > 0 ? availableWidth : 0);
     }
-    
-    // Add resize listener if needed
-    // return () => remove listener;
   }, [images]); // Rerun if images change (potential height change)
 
   // --- Scale Calculations ---
@@ -186,7 +194,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const baseScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
   
   // Apply zoom level to the scale - lower zoom level means more range is shown
-  const zoomFactor = (110 - zoomLevel) / 50; // Ranges from 0.2 (zoomLevel=100) to 2.0 (zoomLevel=10)
+  const zoomFactor = (110 - internalZoomLevel) / 50; // Ranges from 0.2 (zoomLevel=100) to 2.0 (zoomLevel=10)
   const zoomAdjustedTopCm = baseScaleTopCm * zoomFactor;
   
   // Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks)
@@ -227,8 +235,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   // If zoomAdjustedBottomCm is too small (not negative enough), force it to show at least one negative line
   const zoomAdjustedBottomCm = Math.min(rawZoomAdjustedBottomCm, minimumNegativeSpace);
   
-  const finalScaleTopCm = customScaleTopCm !== null ? customScaleTopCm : zoomAdjustedTopCm;
-  const finalScaleBottomCm = customScaleBottomCm !== null ? customScaleBottomCm : zoomAdjustedBottomCm;
+  const finalScaleTopCm = zoomAdjustedTopCm;
+  const finalScaleBottomCm = zoomAdjustedBottomCm;
 
   const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
   const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
@@ -357,40 +365,38 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDraggedImage(null);
   }, []);
 
-  // Handle scroll for infinite scrolling
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const scrollTop = container.scrollTop;
-    const scrollHeight = container.scrollHeight;
-    const clientHeight = container.clientHeight;
-    
-    setScrollPosition(scrollTop);
-    setIsScrolling(true);
-    
-    // Determine the range increment based on zoom level
-    // Lower zoom levels (wider range) need larger increments
-    const rangeIncrement = (finalScaleTopCm - finalScaleBottomCm) * 
-                          RANGE_INCREMENT_FACTOR * 
-                          (1 + (100 - zoomLevel) / 100); // Scale increment with zoom
-    
-    // Detect when user scrolls near the top or bottom
-    if (scrollTop < SCROLL_THRESHOLD) {
-      // Near top - expand scale upwards
-      setCustomScaleTopCm(finalScaleTopCm + rangeIncrement);
-    } else if (scrollHeight - (scrollTop + clientHeight) < SCROLL_THRESHOLD) {
-      // Near bottom - expand scale downwards
-      // Always preserve at least one negative line
-      const minimumNegativeSpace = -calculatedMajorStep * 1.1;
-      const newBottomValue = finalScaleBottomCm - rangeIncrement;
-      setCustomScaleBottomCm(Math.min(newBottomValue, minimumNegativeSpace));
+  // Adjust view position after zoom changes
+  useEffect(() => {
+    if (containerRef.current && pixelsPerCm > 0) {
+      // Keep the view centered on the useful content
+      const viewportHeight = containerRef.current.clientHeight;
+      const scrollableHeight = containerRef.current.scrollHeight;
+      
+      // Position to ensure figures are centered in view
+      const scrollRatio = 0.35; // Slightly above middle to show more height
+      const targetPosition = Math.max(0, scrollableHeight * scrollRatio - viewportHeight/2);
+      
+      containerRef.current.scrollTop = targetPosition;
     }
-    
-    // Set a timeout to detect when scrolling stops
-    clearTimeout((window as any).scrollTimeout);
-    (window as any).scrollTimeout = setTimeout(() => {
-      setIsScrolling(false);
-    }, 100);
-  }, [finalScaleTopCm, finalScaleBottomCm, zoomLevel, calculatedMajorStep]);
+  }, [internalZoomLevel, pixelsPerCm, images]);
+  
+  // Prevent mouse wheel scroll but allow zoom control via wheel with Ctrl key
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    // If Ctrl key is pressed, use wheel for zoom control
+    if (e.ctrlKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        // Zoom in (wheel up)
+        setInternalZoomLevel(prev => Math.min(100, prev + 5));
+      } else {
+        // Zoom out (wheel down)
+        setInternalZoomLevel(prev => Math.max(10, prev - 5));
+      }
+    } else {
+      // Prevent normal scrolling
+      e.preventDefault();
+    }
+  }, []);
 
   // Add and remove event listeners for mouse move and up
   useLayoutEffect(() => {
@@ -412,23 +418,14 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // Effect to maintain scroll position when scale changes
-  useEffect(() => {
-    if (containerRef.current && pixelsPerCm > 0) {
-      // Calculate the position that would keep our view centered after scale change
-      const targetPosition = scrollPosition * (containerRef.current.scrollHeight / containerHeightPx);
-      containerRef.current.scrollTop = targetPosition;
-    }
-  }, [finalScaleTopCm, finalScaleBottomCm, containerHeightPx, scrollPosition, pixelsPerCm]);
-
   return (
-    // Container now fills the space given by parent in page.tsx and captures scroll events
+    // Container with fixed scroll behavior
     <div 
       ref={containerRef} 
       className="relative w-full h-full overflow-auto bg-white dark:bg-gray-800"
-      onScroll={handleScroll}
+      onWheel={handleWheel}
     >
-      {/* Content wrapper to allow scrolling beyond the visible area */}
+      {/* Content wrapper with fixed dimensions */}
       <div 
         className="relative" 
         style={{ 
@@ -436,6 +433,30 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
           minHeight: '100%'
         }}
       >
+        {/* Scale Unit Labels at the top */}
+        <div className="absolute top-2 left-0 right-0 flex justify-between z-20 pointer-events-none">
+          <div 
+            className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded px-1"
+            style={{ 
+              width: `${LABEL_WIDTH_PX}px`, 
+              textAlign: 'center',
+              marginLeft: `${LABEL_WIDTH_PX * 0.3}px` // Move CM label to the right
+            }}
+          >
+            CM
+          </div>
+          <div 
+            className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded px-1"
+            style={{ 
+              width: `${LABEL_WIDTH_PX}px`, 
+              textAlign: 'center',
+              marginRight: `${LABEL_WIDTH_PX * 0.3}px` // Move Feet'Inch" label to the left
+            }}
+          >
+            Feet&apos;Inch&quot;
+          </div>
+        </div>
+
         {/* Background Grid/Scales */} 
         <div className="absolute inset-0 pointer-events-none z-0">
             {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
