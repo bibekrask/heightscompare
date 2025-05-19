@@ -112,6 +112,10 @@ interface SidebarProps {
   onUpdate: (id: string, updates: Partial<ManagedImage>) => void;
   onAdd: (personData: Omit<ManagedImage, 'id'>) => void;
   onRemove: (id: string) => void;
+  editingId?: string | null;
+  onSetEditingId?: (id: string | null) => void;
+  majorStep: number;
+  className?: string;
 }
 
 // Add a type for the form data
@@ -457,11 +461,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
 };
 
 // Sidebar component
-const Sidebar: React.FC<SidebarProps & { 
-  className?: string, 
-  editingId?: string | null,
-  onSetEditingId?: (id: string | null) => void 
-}> = ({ 
+const Sidebar: React.FC<SidebarProps> = ({ 
   images, 
   selectedId, 
   onSelect, 
@@ -470,6 +470,7 @@ const Sidebar: React.FC<SidebarProps & {
   onRemove,
   editingId,
   onSetEditingId,
+  majorStep,
   className 
 }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'entities'>('add');
@@ -864,6 +865,54 @@ const Sidebar: React.FC<SidebarProps & {
                     />
                   </div>
 
+                  {/* Vertical Adjustment */}
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vertical Adjustment</label>
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => {
+                          const stepSize = majorStep / 20; // 1/20th of the major step
+                          onUpdate(image.id, { verticalOffsetCm: (image.verticalOffsetCm || 0) + stepSize });
+                        }}
+                        className="p-2 rounded-l flex items-center justify-center hover:bg-opacity-80"
+                        style={{ 
+                          backgroundColor: image.color,
+                          color: 'white'
+                        }}
+                        title="Move up"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <div className="flex-grow text-center text-sm text-gray-600 dark:text-gray-400 px-2 py-2 bg-white dark:bg-gray-700 border-t border-b border-gray-300 dark:border-gray-600">
+                        {(image.verticalOffsetCm || 0).toFixed(2)} cm
+                      </div>
+                      <button
+                        onClick={() => {
+                          const stepSize = majorStep / 20; // 1/20th of the major step
+                          onUpdate(image.id, { verticalOffsetCm: (image.verticalOffsetCm || 0) - stepSize });
+                        }}
+                        className="p-2 rounded-r flex items-center justify-center hover:bg-opacity-80"
+                        style={{ 
+                          backgroundColor: image.color,
+                          color: 'white'
+                        }}
+                        title="Move down"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 italic">
+                      Adjust to align feet position to ground level
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Step size: {(majorStep / 20).toFixed(2)} cm
+                    </div>
+                  </div>
+
                   {/* Delete Button */}
                   <button
                     onClick={() => {
@@ -1007,6 +1056,7 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(50);
+  const [majorStep, setMajorStep] = useState<number>(10); // Store major step value
 
   // --- Load state from localStorage on initial client mount ---
   useEffect(() => {
@@ -1164,6 +1214,7 @@ export default function Home() {
           onRemove={handleRemovePerson} 
           editingId={editingId}
           onSetEditingId={setEditingId}
+          majorStep={majorStep} // Pass major step to sidebar
           className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
         />
 
@@ -1181,6 +1232,7 @@ export default function Home() {
             <ImageComparer 
               images={images}
               zoomLevel={zoomLevel}
+              onMajorStepChange={setMajorStep} // Get major step from ImageComparer
               onEdit={(id) => {
                 // If the image is already being edited, then clicking it should close the edit sidebar
                 const isAlreadyEditing = editingId === id;

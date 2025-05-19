@@ -23,6 +23,7 @@ interface ImageComparerProps {
   onDelete?: (id: string) => void;
   onImageUpdate?: (id: string, updates: Partial<ManagedImage>) => void;
   onZoomChange?: (newZoom: number) => void; // Add zoom change handler
+  onMajorStepChange?: (step: number) => void; // Add callback for major step changes
 }
 
 // --- Constants --- 
@@ -136,7 +137,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   onEdit, 
   onDelete,
   onImageUpdate,
-  onZoomChange
+  onZoomChange,
+  onMajorStepChange
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const figuresContainerRef = useRef<HTMLDivElement>(null);
@@ -218,6 +220,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   }
   calculatedMajorStep = Math.max(10, calculatedMajorStep);
   // --- End dynamic step calculation ---
+
+  // Notify parent component of major step change when it changes
+  useEffect(() => {
+    if (onMajorStepChange) {
+      onMajorStepChange(calculatedMajorStep);
+    }
+  }, [calculatedMajorStep, onMajorStepChange]);
 
   // Scale bottom: Use calculated step to add margin below the first negative line
   // Always ensure we have at least one negative mark by forcing the bottom scale to include -calculatedMajorStep
