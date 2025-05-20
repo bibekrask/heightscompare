@@ -14,8 +14,8 @@ export default function AboutPage() {
         <h2>What is Height Comparison Tool?</h2>
         <p>
           Height Comparison Tool is a free, user-friendly web application designed to help you visualize 
-          and compare heights easily. Whether you're curious about celebrity heights, need to compare 
-          different people's heights, or want to understand height differences visually, our tool makes 
+          and compare heights easily. Whether you&apos;re curious about celebrity heights, need to compare 
+          different people&apos;s heights, or want to understand height differences visually, our tool makes 
           it simple and intuitive.
         </p>
 
