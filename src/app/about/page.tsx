@@ -70,12 +70,12 @@ export default function AboutPage() {
         <h2>Privacy and Data Security</h2>
         <p>
           We take your privacy seriously. Any images you upload are processed in your browser and are not 
-          stored on our servers. We don't collect any personal information unless explicitly provided.
+          stored on our servers. We don&apos;t collect any personal information unless explicitly provided.
         </p>
 
         <h2>Contact Us</h2>
         <p>
-          Have questions or suggestions? We'd love to hear from you! Contact us at{' '}
+          Have questions or suggestions? We&apos;d love to hear from you! Contact us at{' '}
           <a href="mailto:contact@heightcomparison.com" className="text-blue-500 hover:text-blue-600">
             contact@heightcomparison.com
           </a>

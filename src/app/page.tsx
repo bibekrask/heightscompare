@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ImageComparer from '@/components/ImageComparer';
 import ColorPicker from '@/components/ColorPicker';
+import Image from 'next/image';
 // import AddSection from '@/components/AddSection'; // To be replaced by Sidebar logic
 // import EditSection from '@/components/EditSection'; // To be replaced by Sidebar logic
 
@@ -31,7 +32,7 @@ const processImageFile = async (file: File): Promise<{ dataUrl: string, aspectRa
     const reader = new FileReader();
     
     reader.onload = (e) => {
-      const img = new Image();
+      const img = document.createElement('img');
       img.onload = () => {
         const aspectRatio = img.width / img.height;
         resolve({
@@ -404,9 +405,11 @@ const PersonForm: React.FC<PersonFormProps> = ({
           
           {uploadedImagePreview ? (
             <div className="relative w-full">
-              <img 
+              <Image 
                 src={uploadedImagePreview} 
                 alt="Preview" 
+                width={96}
+                height={96}
                 className="h-24 object-contain mx-auto mb-2 border border-gray-300 p-1 rounded"
               />
               <button
