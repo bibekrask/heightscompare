@@ -59,14 +59,12 @@ const AppHeader = () => (
     <div className="flex items-center space-x-4">
       <div className="font-bold text-xl flex items-center">
         <span className="w-8 h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
-        HeightComparison
+        HeightsComparison
       </div>
       <nav className="hidden md:flex space-x-4 text-sm">
-        <a className="hover:underline cursor-pointer">Home</a>
-        <a className="hover:underline cursor-pointer">Height Calculator</a>
-        <a className="hover:underline cursor-pointer">About</a>
-        <a className="hover:underline cursor-pointer">Contact</a>
-        <a className="text-blue-500 hover:underline cursor-pointer">Join us on Discord!</a>
+        <a href="/" className="hover:underline cursor-pointer">Home</a>
+        <a href="/about" className="hover:underline cursor-pointer">About</a>
+        <a href="/contact" className="hover:underline cursor-pointer">Contact</a>
       </nav>
     </div>
     <div className="flex items-center space-x-2">
