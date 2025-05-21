@@ -995,7 +995,7 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
         </svg>
       </button>
     </div>
-    <div className="flex-grow text-center text-xs text-gray-500">HeightComparison.com</div>
+    <div className="flex-grow text-center text-xs text-gray-500">HeightsComparison.com</div>
     <div className="flex items-center space-x-1">
       <button 
         className="text-xs p-1 border rounded" 
