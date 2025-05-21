@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import ImageComparer from '@/components/ImageComparer';
 import ColorPicker from '@/components/ColorPicker';
 import Image from 'next/image';
+import Link from 'next/link';
 // import AddSection from '@/components/AddSection'; // To be replaced by Sidebar logic
 // import EditSection from '@/components/EditSection'; // To be replaced by Sidebar logic
 
@@ -62,9 +63,9 @@ const AppHeader = () => (
         HeightsComparison
       </div>
       <nav className="hidden md:flex space-x-4 text-sm">
-        <a href="/" className="hover:underline cursor-pointer">Home</a>
-        <a href="/about" className="hover:underline cursor-pointer">About</a>
-        <a href="/contact" className="hover:underline cursor-pointer">Contact</a>
+        <Link href="/" className="hover:underline cursor-pointer">Home</Link>
+        <Link href="/about" className="hover:underline cursor-pointer">About</Link>
+        <Link href="/contact" className="hover:underline cursor-pointer">Contact</Link>
       </nav>
     </div>
     <div className="flex items-center space-x-2">

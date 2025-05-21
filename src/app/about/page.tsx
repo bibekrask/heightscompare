@@ -59,7 +59,7 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-semibold mb-4">Get in Touch</h2>
           <p>
-            Have questions or suggestions? We'd love to hear from you! Visit our{' '}
+            Have questions or suggestions? We&apos;d love to hear from you! Visit our{' '}
             <a href="/contact" className="text-blue-600 hover:underline">
               contact page
             </a>{' '}

@@ -25,7 +25,7 @@ export default function FAQ() {
 
         <section>
           <h2 className="text-2xl font-semibold mb-4">How can I request a height comparison?</h2>
-          <p className="text-lg">You can use our search feature to find and compare heights of celebrities, athletes, and public figures. If you can't find someone specific, you can contact us to request an addition.</p>
+          <p className="text-lg">You can use our search feature to find and compare heights of celebrities, athletes, and public figures. If you can&apos;t find someone specific, you can contact us to request an addition.</p>
         </section>
 
         <section>
