@@ -59,32 +59,49 @@ const AppHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 flex justify-between items-center">
-      <div className="flex items-center space-x-4">
-        <div className="font-bold text-xl flex items-center">
-          <span className="w-8 h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
-          HeightsComparison
+    <header className="p-2 md:p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <div className="font-bold text-lg md:text-xl flex items-center">
+            <span className="w-6 h-6 md:w-8 md:h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
+            HeightsComparison
+          </div>
+          {/* Menu button for mobile */}
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+          </button>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-4 text-sm">
+            <Link href="/" className="hover:underline cursor-pointer">Home</Link>
+            <Link href="/about" className="hover:underline cursor-pointer">About</Link>
+            <Link href="/contact" className="hover:underline cursor-pointer">Contact</Link>
+          </nav>
         </div>
-        {/* Menu button for mobile */}
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-          </svg>
-        </button>
-        {/* Navigation menu - hidden on mobile unless menu is open */}
-        <nav className={`${isMenuOpen ? 'absolute top-full left-0 right-0 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 md:p-0' : 'hidden'} md:flex md:relative md:space-x-4 text-sm`}>
-          <Link href="/" className="block py-2 md:py-0 hover:underline cursor-pointer">Home</Link>
-          <Link href="/about" className="block py-2 md:py-0 hover:underline cursor-pointer">About</Link>
-          <Link href="/contact" className="block py-2 md:py-0 hover:underline cursor-pointer">Contact</Link>
+        {/* Desktop Auth Buttons */}
+        <div className="hidden md:flex items-center space-x-2">
+          <button className="text-sm">Login</button>
+          <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMenuOpen && (
+        <nav className="md:hidden absolute left-0 right-0 top-full bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col p-3 space-y-2">
+            <Link href="/" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Home</Link>
+            <Link href="/about" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">About</Link>
+            <Link href="/contact" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Contact</Link>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+            <button className="text-left py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Login</button>
+            <button className="bg-red-500 text-white py-2 px-3 rounded text-left">Sign Up &mdash; It&apos;s Free</button>
+          </div>
         </nav>
-      </div>
-      <div className="flex items-center space-x-2">
-        <button className="text-sm">Login</button>
-        <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
-      </div>
+      )}
     </header>
   );
 };
@@ -1187,9 +1204,9 @@ export default function Home() {
       <AppHeader />
 
       {/* Main content area with Sidebar and Comparer */}
-      <div className="flex flex-col md:flex-row flex-grow overflow-hidden"> 
+      <div className="flex flex-col md:flex-row flex-grow overflow-y-auto md:overflow-hidden"> 
         {/* Main Comparison Area - 75% width on desktop */}
-        <div className="flex-grow flex flex-col overflow-hidden order-1 md:w-3/4">
+        <div className="flex flex-col overflow-hidden order-1 min-h-[70vh] md:min-h-0 md:w-3/4">
           <ComparerControls 
             onClearAll={handleClearAll}
             onZoomIn={handleZoomIn}
@@ -1200,7 +1217,7 @@ export default function Home() {
           />
           
           {/* Comparer component container */} 
-          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-hidden flex-grow min-h-[75vh] md:min-h-0"> 
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-hidden flex-grow md:min-h-0"> 
             <ImageComparer 
               images={images}
               zoomLevel={zoomLevel}
@@ -1246,7 +1263,7 @@ export default function Home() {
           editingId={editingId}
           onSetEditingId={setEditingId}
           majorStep={majorStep}
-          className="w-full md:w-1/4 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto order-2 max-h-[25vh] md:max-h-none md:h-full"
+          className="w-full md:w-1/4 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col md:overflow-y-auto order-2 md:max-h-none md:h-full"
         />
       </div>
     </div>
