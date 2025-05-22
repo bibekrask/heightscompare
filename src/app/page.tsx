@@ -55,25 +55,39 @@ const MALE_ASPECT_RATIO = 0.4; // Width to height ratio
 const FEMALE_ASPECT_RATIO = 0.4; // Width to height ratio
 
 // --- Placeholder Components --- 
-const AppHeader = () => (
-  <header className="p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 flex justify-between items-center">
-    <div className="flex items-center space-x-4">
-      <div className="font-bold text-xl flex items-center">
-        <span className="w-8 h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
-        HeightsComparison
+const AppHeader = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  return (
+    <header className="p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 flex justify-between items-center">
+      <div className="flex items-center space-x-4">
+        <div className="font-bold text-xl flex items-center">
+          <span className="w-8 h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
+          HeightsComparison
+        </div>
+        {/* Menu button for mobile */}
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+        </button>
+        {/* Navigation menu - hidden on mobile unless menu is open */}
+        <nav className={`${isMenuOpen ? 'absolute top-full left-0 right-0 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 md:p-0' : 'hidden'} md:flex md:relative md:space-x-4 text-sm`}>
+          <Link href="/" className="block py-2 md:py-0 hover:underline cursor-pointer">Home</Link>
+          <Link href="/about" className="block py-2 md:py-0 hover:underline cursor-pointer">About</Link>
+          <Link href="/contact" className="block py-2 md:py-0 hover:underline cursor-pointer">Contact</Link>
+        </nav>
       </div>
-      <nav className="hidden md:flex space-x-4 text-sm">
-        <Link href="/" className="hover:underline cursor-pointer">Home</Link>
-        <Link href="/about" className="hover:underline cursor-pointer">About</Link>
-        <Link href="/contact" className="hover:underline cursor-pointer">Contact</Link>
-      </nav>
-    </div>
-    <div className="flex items-center space-x-2">
-      <button className="text-sm">Login</button>
-      <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
-    </div>
-  </header>
-);
+      <div className="flex items-center space-x-2">
+        <button className="text-sm">Login</button>
+        <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
+      </div>
+    </header>
+  );
+};
 
 // --- ManagedImage Interface ---
 interface ManagedImage {
@@ -957,6 +971,7 @@ interface ComparerControlsProps {
   onZoomOut?: () => void;
   onZoomChange?: (value: number) => void;
   zoomLevel?: number;
+  className?: string;
 }
 
 // Controls for the comparer (accepts props)
@@ -965,9 +980,10 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
   onZoomIn,
   onZoomOut,
   onZoomChange,
-  zoomLevel = 50 
+  zoomLevel = 50,
+  className
 }) => (
-  <div className="h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px]">
+  <div className={`h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px] ${className}`}>
     <div className="flex items-center space-x-1">
       <button 
         title="Zoom Out" 
@@ -1171,7 +1187,55 @@ export default function Home() {
       <AppHeader />
 
       {/* Main content area with Sidebar and Comparer */}
-      <div className="flex flex-grow overflow-hidden"> 
+      <div className="flex flex-col md:flex-row flex-grow overflow-hidden"> 
+        {/* Main Comparison Area - 75% width on desktop */}
+        <div className="flex-grow flex flex-col overflow-hidden order-1 md:w-3/4">
+          <ComparerControls 
+            onClearAll={handleClearAll}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onZoomChange={handleZoomChange}
+            zoomLevel={zoomLevel}
+            className="sticky top-0 z-20 bg-white dark:bg-gray-900"
+          />
+          
+          {/* Comparer component container */} 
+          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-hidden flex-grow min-h-[75vh] md:min-h-0"> 
+            <ImageComparer 
+              images={images}
+              zoomLevel={zoomLevel}
+              onMajorStepChange={setMajorStep}
+              onEdit={(id) => {
+                const isAlreadyEditing = editingId === id;
+                setSelectedId(id);
+                
+                const sidebarElement = document.querySelector('.sidebar-tabs');
+                if (sidebarElement) {
+                  const addTabButton = sidebarElement.querySelector('[data-tab="add"]');
+                  if (addTabButton) {
+                    (addTabButton as HTMLElement).click();
+                  }
+                }
+                
+                setTimeout(() => {
+                  setEditingId(isAlreadyEditing ? null : id);
+                }, 50);
+
+                // On mobile, smooth scroll to the sidebar
+                if (window.innerWidth < 768) {
+                  const sidebarElement = document.querySelector('.sidebar-tabs');
+                  if (sidebarElement) {
+                    sidebarElement.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }
+              }}
+              onDelete={handleRemovePerson}
+              onImageUpdate={handleUpdatePerson}
+            />
+          </div>
+        </div>
+
+        {/* Sidebar - 25% width on desktop */}
         <Sidebar 
           images={images}
           selectedId={selectedId}
@@ -1181,61 +1245,9 @@ export default function Home() {
           onRemove={handleRemovePerson} 
           editingId={editingId}
           onSetEditingId={setEditingId}
-          majorStep={majorStep} // Pass major step to sidebar
-          className="w-full h-[25vh] md:h-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto"
+          majorStep={majorStep}
+          className="w-full md:w-1/4 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-y-auto order-2 max-h-[25vh] md:max-h-none md:h-full"
         />
-
-        {/* Main Comparison Area */} 
-        <main className="flex flex-col w-full h-[75vh] md:h-auto md:flex-grow overflow-hidden">
-          <ComparerControls 
-            onClearAll={handleClearAll}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onZoomChange={handleZoomChange}
-            zoomLevel={zoomLevel} 
-          />
-          {/* Comparer component container */} 
-          <div className="relative bg-gray-200 dark:bg-gray-700 overflow-hidden h-full md:h-[60vh]"> 
-            <ImageComparer 
-              images={images}
-              zoomLevel={zoomLevel}
-              onMajorStepChange={setMajorStep} // Get major step from ImageComparer
-              onEdit={(id) => {
-                // If the image is already being edited, then clicking it should close the edit sidebar
-                const isAlreadyEditing = editingId === id;
-                
-                // Always set selectedId to the clicked image
-                setSelectedId(id);
-                
-                // Ensure the activeTab is set to 'add' and the editingId is set to the clicked image
-                const sidebarElement = document.querySelector('.sidebar-tabs');
-                if (sidebarElement) {
-                  // Set the active tab to 'add' to ensure the editing interface is visible
-                  const addTabButton = sidebarElement.querySelector('[data-tab="add"]');
-                  if (addTabButton) {
-                    (addTabButton as HTMLElement).click();
-                  }
-                }
-                
-                // Toggle the editing state - if already editing this image, close it
-                setTimeout(() => {
-                  setEditingId(isAlreadyEditing ? null : id);
-                }, 50);
-
-                // On mobile, scroll to the sidebar
-                if (window.innerWidth < 768) {
-                  window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
-              onDelete={handleRemovePerson}
-              onImageUpdate={handleUpdatePerson}
-            /> 
-          </div>
-        </main>
-
       </div>
     </div>
   );
