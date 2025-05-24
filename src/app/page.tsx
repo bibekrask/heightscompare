@@ -59,46 +59,46 @@ const AppHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="p-2 md:p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
+    <header className="p-3 md:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2 md:space-x-4">
-          <div className="font-bold text-lg md:text-xl flex items-center">
-            <span className="w-6 h-6 md:w-8 md:h-8 bg-red-500 text-white flex items-center justify-center mr-1">H</span>
+        <div className="flex items-center space-x-3 md:space-x-6">
+          <div className="font-heading font-bold text-xl md:text-2xl flex items-center text-gray-900 dark:text-white">
+            <span className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center mr-2 rounded-lg shadow-lg font-bold text-sm md:text-base">H</span>
             HeightsComparison
           </div>
           {/* Menu button for mobile */}
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+            className="md:hidden p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
           </button>
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-4 text-sm">
-            <Link href="/" className="hover:underline cursor-pointer">Home</Link>
-            <Link href="/about" className="hover:underline cursor-pointer">About</Link>
-            <Link href="/contact" className="hover:underline cursor-pointer">Contact</Link>
+          <nav className="hidden md:flex space-x-6 text-base font-medium">
+            <Link href="/" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">Home</Link>
+            <Link href="/about" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">About</Link>
+            <Link href="/contact" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">Contact</Link>
           </nav>
         </div>
         {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center space-x-2">
-          <button className="text-sm">Login</button>
-          <button className="text-sm bg-red-500 text-white px-3 py-1 rounded">Sign Up &mdash; It&apos;s Free</button>
+        <div className="hidden md:flex items-center space-x-3">
+          <button className="text-base font-medium text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors">Login</button>
+          <button className="text-base font-semibold bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2.5 rounded-lg shadow-lg hover:shadow-xl hover:from-red-600 hover:to-red-700 transition-all">Sign Up — It&apos;s Free</button>
         </div>
       </div>
 
       {/* Mobile Navigation Menu */}
       {isMenuOpen && (
-        <nav className="md:hidden absolute left-0 right-0 top-full bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col p-3 space-y-2">
-            <Link href="/" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Home</Link>
-            <Link href="/about" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">About</Link>
-            <Link href="/contact" className="py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Contact</Link>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-            <button className="text-left py-2 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 rounded">Login</button>
-            <button className="bg-red-500 text-white py-2 px-3 rounded text-left">Sign Up &mdash; It&apos;s Free</button>
+        <nav className="md:hidden absolute left-0 right-0 top-full bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
+          <div className="flex flex-col p-4 space-y-1">
+            <Link href="/" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Home</Link>
+            <Link href="/about" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">About</Link>
+            <Link href="/contact" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Contact</Link>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+            <button className="text-left py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Login</button>
+            <button className="bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-4 rounded-lg text-left text-base font-semibold shadow-lg hover:shadow-xl hover:from-red-600 hover:to-red-700 transition-all">Sign Up — It&apos;s Free</button>
           </div>
         </nav>
       )}
@@ -310,24 +310,24 @@ const PersonForm: React.FC<PersonFormProps> = ({
   };
 
   return (
-    <div className="space-y-2 md:space-y-4">
+    <div className="space-y-3 md:space-y-5">
       {/* Gender Selection */}
       <div className="grid grid-cols-2 gap-0.5 md:gap-1">
         <button
-          className={`py-1 md:py-2 px-2 md:px-4 rounded-l border text-xs md:text-sm ${
+          className={`py-2 md:py-3 px-3 md:px-5 rounded-l-lg border font-medium text-sm md:text-base transition-all ${
             formData.gender === 'male' 
-              ? 'bg-blue-100 border-blue-500' 
-              : 'bg-white border-gray-300'
+              ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
           onClick={() => handleGenderChange('male')}
         >
           Male
         </button>
         <button
-          className={`py-1 md:py-2 px-2 md:px-4 rounded-r border text-xs md:text-sm ${
+          className={`py-2 md:py-3 px-3 md:px-5 rounded-r-lg border font-medium text-sm md:text-base transition-all ${
             formData.gender === 'female' 
-              ? 'bg-blue-100 border-blue-500' 
-              : 'bg-white border-gray-300'
+              ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
           onClick={() => handleGenderChange('female')}
         >
@@ -337,30 +337,30 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Name Input */}
       <div>
-        <label className="block text-xs md:text-sm font-medium text-gray-700 mb-0.5 md:mb-1">Name</label>
+        <label className="block text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-2">Name</label>
         <input 
           type="text" 
-          placeholder="(Optional)"
+          placeholder="Enter person's name (optional)"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
+          className="w-full p-3 md:p-4 border border-gray-300 rounded-lg text-sm md:text-base font-body bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
           suppressHydrationWarning={true}
         />
       </div>
 
       {/* Height Input with Unit Toggle */}
       <div>
-        <div className="flex justify-between items-center mb-0.5 md:mb-1">
-          <label className="block text-xs md:text-sm font-medium text-gray-700">Height</label>
-          <div className="flex border border-gray-300 rounded overflow-hidden">
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm md:text-base font-semibold text-gray-900 dark:text-white">Height</label>
+          <div className="flex border border-gray-300 rounded-lg overflow-hidden shadow-sm">
             <button
-              className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${heightUnit === 'ft' ? 'bg-gray-200' : 'bg-white'}`}
+              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-all ${heightUnit === 'ft' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               onClick={() => setHeightUnit('ft')}
             >
-              ft
+              ft/in
             </button>
             <button
-              className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${heightUnit === 'cm' ? 'bg-gray-200' : 'bg-white'}`}
+              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-all ${heightUnit === 'cm' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               onClick={() => setHeightUnit('cm')}
             >
               cm
@@ -369,33 +369,33 @@ const PersonForm: React.FC<PersonFormProps> = ({
         </div>
         
         {heightUnit === 'ft' ? (
-          <div className="flex gap-1 md:gap-2">
+          <div className="flex gap-2 md:gap-3">
             <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.feet}
                 onChange={e => handleFtInChange(e.target.value, 'feet')}
-                className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg text-sm md:text-base font-body bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                 min="0"
                 step="1"
                 placeholder="5"
                 suppressHydrationWarning={true}
               />
-              <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">ft</span>
+              <span className="absolute right-3 md:right-4 top-3 md:top-4 text-gray-500 dark:text-gray-400 text-sm font-medium">ft</span>
             </div>
             <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.inches}
                 onChange={e => handleFtInChange(e.target.value, 'inches')}
-                className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg text-sm md:text-base font-body bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                 min="0"
                 max="11.99"
                 step="0.1"
                 placeholder="10"
                 suppressHydrationWarning={true}
               />
-              <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">in</span>
+              <span className="absolute right-3 md:right-4 top-3 md:top-4 text-gray-500 dark:text-gray-400 text-sm font-medium">in</span>
             </div>
           </div>
         ) : (
@@ -404,20 +404,20 @@ const PersonForm: React.FC<PersonFormProps> = ({
               type="number" 
               value={formData.heightCm === 0 ? '' : Math.round(formData.heightCm)}
               onChange={e => handleCmChange(e.target.value)}
-              className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
+              className="w-full p-3 md:p-4 border border-gray-300 rounded-lg text-sm md:text-base font-body bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
               min="0" 
               step="1"
               placeholder="173"
               suppressHydrationWarning={true}
             />
-            <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">cm</span>
+            <span className="absolute right-3 md:right-4 top-3 md:top-4 text-gray-500 dark:text-gray-400 text-sm font-medium">cm</span>
           </div>
         )}
       </div>
 
       {/* Color Selection - Use the new ColorPicker component */}
       <div>
-        <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Color</label>
+        <label className="block text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-2">Color</label>
         <ColorPicker 
           selectedColor={formData.color} 
           onChange={handleColorChange} 
@@ -426,7 +426,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Custom Image Upload */}
       <div>
-        <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Upload Image (Optional)</label>
+        <label className="block text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-2">Upload Image (Optional)</label>
         <div className="flex flex-col space-y-1 md:space-y-2">
           <input
             type="file"
@@ -460,9 +460,9 @@ const PersonForm: React.FC<PersonFormProps> = ({
           ) : (
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full p-1 md:p-2 border border-gray-300 rounded flex items-center justify-center gap-1 md:gap-2 hover:bg-gray-50 text-xs md:text-sm"
+              className="w-full p-3 md:p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center gap-2 md:gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 transition-all"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span>Choose Image</span>
@@ -473,7 +473,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Add Person Button */}
       <button
-        className="w-full bg-blue-500 text-white p-1.5 md:p-3 rounded font-medium text-xs md:text-base"
+        className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white p-3 md:p-4 rounded-lg font-semibold text-sm md:text-base shadow-lg hover:shadow-xl hover:from-red-600 hover:to-red-700 transition-all font-heading"
         onClick={handleSubmit}
       >
         {buttonText}

@@ -41,11 +41,11 @@ const epsilon = 1e-6;
 
 // --- Helper Functions (cmToFtIn, cmToCmLabel, generateHorizontalMarks can be adapted) ---
 const cmToFtIn = (cm: number): string => {
-    if (Math.abs(cm) < epsilon) return "0\' 0\"";
+    if (Math.abs(cm) < epsilon) return "0\'0\"";
     const absCm = Math.abs(cm);
     const totalInches = absCm / CM_PER_INCH;
     const feet = Math.floor(totalInches / INCHES_PER_FOOT);
-    // Match screenshot format (e.g., 5' 10.46") - round to 2 decimal places for inches?
+    // Match screenshot format (e.g., 5'10.46") - round to 2 decimal places for inches?
     let inches = totalInches % INCHES_PER_FOOT;
     let adjustedFeet = feet;
     if (Math.abs(inches - 12) < epsilon / 100) { // Check closer to 12
@@ -53,8 +53,8 @@ const cmToFtIn = (cm: number): string => {
         inches = 0;
     }
     const sign = cm < 0 ? '-' : '';
-    // Show inches with more precision like screenshot
-    return `${sign}${adjustedFeet}\' ${inches.toFixed(2)}\"`; 
+    // Show inches with more precision like screenshot, no space between feet and inches
+    return `${sign}${adjustedFeet}\'${inches.toFixed(2)}\"`; 
 };
 
 const cmToCmLabel = (cm: number): string => {
@@ -567,10 +567,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       >
         {/* Scale Unit Headers */}
         <div className="absolute top-0 left-0 right-0 flex justify-between z-10 pointer-events-none px-1">
-          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 px-2 py-1 rounded shadow-sm">
+          <span className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 bg-opacity-95 dark:bg-opacity-95 px-1 py-0 rounded-lg shadow-lg font-heading">
             CM
           </span>
-          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 px-2 py-1 rounded shadow-sm">
+          <span className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 bg-opacity-95 dark:bg-opacity-95 px-2 py-0 rounded-lg shadow-lg font-heading">
             Feet
           </span>
         </div>
@@ -600,13 +600,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                 return (
                 <div key={`label-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom - 20}px` }}>
                     {/* Labels below the line */}
-                    <div className="flex justify-between w-full mt-1">
+                    <div className="flex justify-between w-full px-1 mt-1">
                       {/* Left Label (CM) */}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-1 rounded">
-                        {mark.labelCm} cm
+                      <span className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-200 font-mono tracking-tighter">
+                        {mark.labelCm}
                       </span>
                       {/* Right Label (Ft) */}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-1 rounded">
+                      <span className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-200 font-mono tracking-tighter">
                         {mark.labelFtIn}
                       </span>
                     </div>
@@ -620,8 +620,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
           className="absolute inset-0 z-10" 
           style={{ 
               paddingBottom: `${zeroLineOffsetPx}px`, // Align base with 0 line + space for labels
-              paddingLeft: '8px',
-              paddingRight: '8px'
+              paddingLeft: '0px', // padding from left edge for silohuettes
+              paddingRight: '25px' // padding from right edge for silohuettes
           }}
         >
             {/* Use Flexbox to arrange figures horizontally */}
@@ -701,7 +701,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                         style={{ transform: `translate(-50%, ${FIGURE_LABEL_OFFSET_Y}px)` }}
                       >
                         {/* Text Content Block - Placed FIRST */}
-                        <div className="p-1 text-black font-bold text-xs rounded whitespace-pre text-center mb-1 dark:text-white">
+                        <div className="p-2 text-gray-900 font-semibold text-sm md:text-base whitespace-pre text-center mb-1 dark:text-white font-body">
                           {figureLabel}
                         </div>
                         {/* Horizontal Line - Placed SECOND, below the text */}
@@ -710,13 +710,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
 
                       {/* Mobile interaction hint */}
                       {showMobileButtons !== image.id && (
-                        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity duration-200 flex items-center md:hidden">
+                        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1.5 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity duration-200 flex items-center md:hidden shadow-lg">
                           <span>Tap for options, long press to drag</span>
                         </div>
                       )}
 
                       {/* Desktop drag indicator */}
-                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center hidden md:flex">
+                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1.5 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center hidden md:flex shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                         </svg>
