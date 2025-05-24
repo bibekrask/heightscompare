@@ -159,6 +159,15 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [dragStartX, setDragStartX] = useState<number>(0);
   const [dragStartY, setDragStartY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragThresholdMet, setDragThresholdMet] = useState(false);
+  const [touchStartTime, setTouchStartTime] = useState<number>(0);
+  const [showMobileButtons, setShowMobileButtons] = useState<string | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressActivated, setLongPressActivated] = useState<boolean>(false);
+
+  // Drag threshold constants
+  const DRAG_THRESHOLD_PX = 20; // Minimum pixels to move before starting drag - increased sensitivity
+  const LONG_PRESS_DURATION = 1000; // ms for long press to enable drag on mobile
 
   // Internal zoom state - tied to parent's zoomLevel prop
   const [internalZoomLevel, setInternalZoomLevel] = useState<number>(zoomLevel);
@@ -311,6 +320,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDragStartX(e.clientX);
     setDragStartY(e.clientY);
     setIsDragging(true);
+    setDragThresholdMet(false);
   }, [onImageUpdate]);
 
   // Handle touch start for mobile
@@ -322,7 +332,18 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDragStartX(e.touches[0].clientX);
     setDragStartY(e.touches[0].clientY);
     setIsDragging(true);
-  }, [onImageUpdate]);
+    setDragThresholdMet(false);
+    setTouchStartTime(Date.now());
+    setLongPressActivated(false);
+    
+    // Set timer for long press to enable drag mode
+    const timer = setTimeout(() => {
+      setLongPressActivated(true);
+      setDragThresholdMet(true); // Allow immediate dragging after long press
+    }, LONG_PRESS_DURATION);
+    
+    setLongPressTimer(timer);
+  }, [onImageUpdate, LONG_PRESS_DURATION]);
 
   // Handle mouse move to update position
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -331,57 +352,128 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     const deltaX = e.clientX - dragStartX;
     const deltaY = e.clientY - dragStartY;
     
+    // Check if drag threshold is met
+    if (!dragThresholdMet) {
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distance >= DRAG_THRESHOLD_PX) {
+        setDragThresholdMet(true);
+        setShowMobileButtons(null); // Hide mobile buttons when dragging starts
+      } else {
+        return; // Don't move until threshold is met
+      }
+    }
+    
     const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
-    const deltaYCm = -deltaY / pixelsPerCm; // Invert Y because visual up should increase vertical offset
+    const deltaYCm = -deltaY / pixelsPerCm;
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
     if (imageToUpdate) {
+      // Add viewport boundaries to prevent dragging outside
+      const newHorizontalOffset = imageToUpdate.horizontalOffsetCm + deltaXCm;
+      const newVerticalOffset = imageToUpdate.verticalOffsetCm + deltaYCm;
+      
+      // Constrain to reasonable bounds (adjust as needed)
+      const maxHorizontalOffset = 50; // cm
+      const maxVerticalOffset = 50; // cm
+      
       onImageUpdate(draggedImage, {
-        horizontalOffsetCm: imageToUpdate.horizontalOffsetCm + deltaXCm,
-        verticalOffsetCm: imageToUpdate.verticalOffsetCm + deltaYCm
+        horizontalOffsetCm: Math.max(-maxHorizontalOffset, Math.min(maxHorizontalOffset, newHorizontalOffset)),
+        verticalOffsetCm: Math.max(-maxVerticalOffset, Math.min(maxVerticalOffset, newVerticalOffset))
       });
     }
     
     setDragStartX(e.clientX);
     setDragStartY(e.clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX]);
 
   // Handle touch move for mobile
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging || !draggedImage || !onImageUpdate || !pixelsPerCm) return;
     
-    // Prevent default to stop scrolling when dragging
-    e.preventDefault();
-    
     const deltaX = e.touches[0].clientX - dragStartX;
     const deltaY = e.touches[0].clientY - dragStartY;
     
+    // Clear long press timer if user starts moving before long press completes
+    if (longPressTimer && !longPressActivated) {
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distance >= DRAG_THRESHOLD_PX) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+        return; // Don't allow drag without long press
+      }
+      return; // Don't move until long press or threshold
+    }
+    
+    // Check if drag threshold is met or long press was activated
+    if (!dragThresholdMet && !longPressActivated) {
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distance >= DRAG_THRESHOLD_PX || longPressActivated) {
+        setDragThresholdMet(true);
+        setShowMobileButtons(null); // Hide mobile buttons when dragging starts
+        // Prevent default to stop scrolling when dragging
+        e.preventDefault();
+      } else {
+        return; // Don't move until threshold is met
+      }
+    } else {
+      // Prevent default to stop scrolling when dragging
+      e.preventDefault();
+    }
+    
     const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
-    const deltaYCm = -deltaY / pixelsPerCm; // Invert Y because visual up should increase vertical offset
+    const deltaYCm = -deltaY / pixelsPerCm;
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
     if (imageToUpdate) {
+      // Add viewport boundaries to prevent dragging outside
+      const newHorizontalOffset = imageToUpdate.horizontalOffsetCm + deltaXCm;
+      const newVerticalOffset = imageToUpdate.verticalOffsetCm + deltaYCm;
+      
+      // Constrain to reasonable bounds (adjust as needed)
+      const maxHorizontalOffset = 50; // cm
+      const maxVerticalOffset = 50; // cm
+      
       onImageUpdate(draggedImage, {
-        horizontalOffsetCm: imageToUpdate.horizontalOffsetCm + deltaXCm,
-        verticalOffsetCm: imageToUpdate.verticalOffsetCm + deltaYCm
+        horizontalOffsetCm: Math.max(-maxHorizontalOffset, Math.min(maxHorizontalOffset, newHorizontalOffset)),
+        verticalOffsetCm: Math.max(-maxVerticalOffset, Math.min(maxVerticalOffset, newVerticalOffset))
       });
     }
     
     setDragStartX(e.touches[0].clientX);
     setDragStartY(e.touches[0].clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, longPressTimer, longPressActivated]);
 
   // Handle mouse up to end drag
   const handleMouseUp = useCallback(() => {
+    if (isDragging && !dragThresholdMet && draggedImage) {
+      // If no significant drag occurred, treat as click for edit
+      if (onEdit) {
+        onEdit(draggedImage);
+      }
+    }
     setIsDragging(false);
     setDraggedImage(null);
-  }, []);
+    setDragThresholdMet(false);
+  }, [isDragging, dragThresholdMet, draggedImage, onEdit]);
 
   // Handle touch end for mobile
   const handleTouchEnd = useCallback(() => {
+    // Clear long press timer
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    
+    if (isDragging && !dragThresholdMet && !longPressActivated && draggedImage) {
+      // Short tap that didn't become a drag shows buttons
+      setShowMobileButtons(draggedImage);
+    }
+    
     setIsDragging(false);
     setDraggedImage(null);
-  }, []);
+    setDragThresholdMet(false);
+    setLongPressActivated(false);
+  }, [isDragging, dragThresholdMet, draggedImage, longPressTimer, longPressActivated]);
 
   // Adjust view position after zoom changes
   useEffect(() => {
@@ -435,6 +527,23 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       window.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
+  // Hide mobile buttons when clicking outside
+  useLayoutEffect(() => {
+    const handleClickOutside = () => {
+      setShowMobileButtons(null);
+    };
+
+    if (showMobileButtons) {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMobileButtons]);
 
   return (
     // Container with fixed scroll behavior
@@ -550,36 +659,41 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                           cursor: isDragging && draggedImage === image.id ? 'grabbing' : 'grab'
                       }}
                     >
-                      {/* Edit/Delete buttons - Visible on hover */}
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+                      {/* Edit/Delete buttons - Visible on hover (desktop) or mobile button state */}
+                      <div className={`absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 flex space-x-1 z-30 transition-opacity duration-200 ${
+                        showMobileButtons === image.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}>
                         {onEdit && (
                           <button 
-                            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-md"
+                            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 md:p-1 shadow-lg border-2 border-white"
                             onClick={(e) => {
                               e.stopPropagation();
+                              setShowMobileButtons(null);
                               onEdit(image.id);
                             }}
                             title="Edit"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
                         )}
                         {onDelete && (
                           <button 
-                            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 md:p-1 shadow-lg border-2 border-white"
                             onClick={(e) => {
                               e.stopPropagation();
+                              setShowMobileButtons(null);
                               onDelete(image.id);
                             }}
                             title="Delete"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
                         )}
+
                       </div>
 
                       {/* Figure Label Container - Positioned above the figure */}
@@ -595,8 +709,15 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                         <div className="h-px bg-gray-800 dark:bg-gray-200 w-12"></div>
                       </div>
 
-                      {/* Drag indicator - small hint showing horizontal and vertical arrows */}
-                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center">
+                      {/* Mobile interaction hint */}
+                      {showMobileButtons !== image.id && (
+                        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity duration-200 flex items-center md:hidden">
+                          <span>Tap for options, long press to drag</span>
+                        </div>
+                      )}
+
+                      {/* Desktop drag indicator */}
+                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-0.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center hidden md:flex">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                         </svg>
@@ -635,14 +756,22 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                             backgroundPosition: 'center'
                           })
                         }}
-                        title={`${image.name} - ${image.heightCm}cm. Click and drag to move horizontally and vertically.`}
+                        title={`${image.name} - ${image.heightCm}cm. ${window.innerWidth < 768 ? 'Tap to show options, long press & drag to move' : 'Click and drag to move horizontally and vertically.'}`}
                         onClick={() => {
-  if (!isDragging) {
-    if (onEdit) {
-      onEdit(image.id);
-    }
-  }
-}}
+                          if (!isDragging && !dragThresholdMet) {
+                            // Check if this is a touch device
+                            const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                            if (isMobile) {
+                              // On mobile, show buttons instead of immediate edit
+                              setShowMobileButtons(image.id);
+                            } else {
+                              // On desktop, immediate edit
+                              if (onEdit) {
+                                onEdit(image.id);
+                              }
+                            }
+                          }
+                        }}
                         onMouseDown={(e) => handleMouseDown(e, image.id)}
                         onTouchStart={(e) => handleTouchStart(e, image.id)}
                       ></div>

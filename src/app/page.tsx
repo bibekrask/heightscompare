@@ -310,11 +310,11 @@ const PersonForm: React.FC<PersonFormProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 md:space-y-4">
       {/* Gender Selection */}
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-0.5 md:gap-1">
         <button
-          className={`py-2 px-4 rounded-l border ${
+          className={`py-1 md:py-2 px-2 md:px-4 rounded-l border text-xs md:text-sm ${
             formData.gender === 'male' 
               ? 'bg-blue-100 border-blue-500' 
               : 'bg-white border-gray-300'
@@ -324,7 +324,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
           Male
         </button>
         <button
-          className={`py-2 px-4 rounded-r border ${
+          className={`py-1 md:py-2 px-2 md:px-4 rounded-r border text-xs md:text-sm ${
             formData.gender === 'female' 
               ? 'bg-blue-100 border-blue-500' 
               : 'bg-white border-gray-300'
@@ -337,29 +337,30 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Name Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+        <label className="block text-xs md:text-sm font-medium text-gray-700 mb-0.5 md:mb-1">Name</label>
         <input 
           type="text" 
           placeholder="(Optional)"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          className="w-full p-2 border border-gray-300 rounded"
+          className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
+          suppressHydrationWarning={true}
         />
       </div>
 
       {/* Height Input with Unit Toggle */}
       <div>
-        <div className="flex justify-between items-center mb-1">
-          <label className="block text-sm font-medium text-gray-700">Height</label>
+        <div className="flex justify-between items-center mb-0.5 md:mb-1">
+          <label className="block text-xs md:text-sm font-medium text-gray-700">Height</label>
           <div className="flex border border-gray-300 rounded overflow-hidden">
             <button
-              className={`px-2 py-1 text-xs ${heightUnit === 'ft' ? 'bg-gray-200' : 'bg-white'}`}
+              className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${heightUnit === 'ft' ? 'bg-gray-200' : 'bg-white'}`}
               onClick={() => setHeightUnit('ft')}
             >
               ft
             </button>
             <button
-              className={`px-2 py-1 text-xs ${heightUnit === 'cm' ? 'bg-gray-200' : 'bg-white'}`}
+              className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${heightUnit === 'cm' ? 'bg-gray-200' : 'bg-white'}`}
               onClick={() => setHeightUnit('cm')}
             >
               cm
@@ -368,31 +369,33 @@ const PersonForm: React.FC<PersonFormProps> = ({
         </div>
         
         {heightUnit === 'ft' ? (
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2">
             <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.feet}
                 onChange={e => handleFtInChange(e.target.value, 'feet')}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
                 min="0"
                 step="1"
                 placeholder="5"
+                suppressHydrationWarning={true}
               />
-              <span className="absolute right-3 top-2 text-gray-500">ft</span>
+              <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">ft</span>
             </div>
             <div className="relative flex-1">
               <input 
                 type="number" 
                 value={ftInValues.inches}
                 onChange={e => handleFtInChange(e.target.value, 'inches')}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
                 min="0"
                 max="11.99"
                 step="0.1"
                 placeholder="10"
+                suppressHydrationWarning={true}
               />
-              <span className="absolute right-3 top-2 text-gray-500">in</span>
+              <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">in</span>
             </div>
           </div>
         ) : (
@@ -401,19 +404,20 @@ const PersonForm: React.FC<PersonFormProps> = ({
               type="number" 
               value={formData.heightCm === 0 ? '' : Math.round(formData.heightCm)}
               onChange={e => handleCmChange(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-1 md:p-2 border border-gray-300 rounded text-xs md:text-sm"
               min="0" 
               step="1"
               placeholder="173"
+              suppressHydrationWarning={true}
             />
-            <span className="absolute right-3 top-2 text-gray-500">cm</span>
+            <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 text-xs">cm</span>
           </div>
         )}
       </div>
 
       {/* Color Selection - Use the new ColorPicker component */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+        <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Color</label>
         <ColorPicker 
           selectedColor={formData.color} 
           onChange={handleColorChange} 
@@ -422,8 +426,8 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Custom Image Upload */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload Image (Optional)</label>
-        <div className="flex flex-col space-y-2">
+        <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Upload Image (Optional)</label>
+        <div className="flex flex-col space-y-1 md:space-y-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -431,6 +435,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
             onChange={handleImageSelect}
             className="hidden"
             id="custom-image-upload"
+            suppressHydrationWarning={true}
           />
           
           {uploadedImagePreview ? (
@@ -440,14 +445,14 @@ const PersonForm: React.FC<PersonFormProps> = ({
                 alt="Preview" 
                 width={96}
                 height={96}
-                className="h-24 object-contain mx-auto mb-2 border border-gray-300 p-1 rounded"
+                className="h-16 md:h-24 object-contain mx-auto mb-1 md:mb-2 border border-gray-300 p-1 rounded"
               />
               <button
                 onClick={clearCustomImage}
-                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-md"
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 md:p-1 shadow-md"
                 title="Remove image"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -455,9 +460,9 @@ const PersonForm: React.FC<PersonFormProps> = ({
           ) : (
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full p-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-50"
+              className="w-full p-1 md:p-2 border border-gray-300 rounded flex items-center justify-center gap-1 md:gap-2 hover:bg-gray-50 text-xs md:text-sm"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span>Choose Image</span>
@@ -468,7 +473,7 @@ const PersonForm: React.FC<PersonFormProps> = ({
 
       {/* Add Person Button */}
       <button
-        className="w-full bg-blue-500 text-white p-3 rounded font-medium"
+        className="w-full bg-blue-500 text-white p-1.5 md:p-3 rounded font-medium text-xs md:text-base"
         onClick={handleSubmit}
       >
         {buttonText}
@@ -501,6 +506,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   // });
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
   const sidebarContentRef = useRef<HTMLDivElement>(null);
+  const desktopSidebarContentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
   
   // Sync parent editingId with local state
@@ -524,24 +530,30 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
       
       // Scroll to the edited item when editingId changes
-      if (editingId && sidebarContentRef.current && itemRefs.current[editingId]) {
+      if (editingId && itemRefs.current[editingId]) {
         // Add a slight delay to ensure DOM updates are complete
         setTimeout(() => {
           const itemElement = itemRefs.current[editingId];
-          if (itemElement && sidebarContentRef.current) {
-            // Remove unused rect variables
-            // Get the position of the item relative to the sidebar
-            // const itemRect = itemElement.getBoundingClientRect();
-            // const sidebarRect = sidebarContentRef.current.getBoundingClientRect();
-            
-            // Calculate offset to scroll to (accounting for some padding)
-            const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
-            
-            // Scroll the sidebar to the item
-            sidebarContentRef.current.scrollTo({
-              top: scrollOffset,
-              behavior: 'smooth'
-            });
+          const mobileSidebar = sidebarContentRef.current;
+          const desktopSidebar = desktopSidebarContentRef.current;
+          
+          if (itemElement) {
+            // Check which sidebar is visible and scroll accordingly
+            if (mobileSidebar && window.innerWidth < 768) {
+              // Mobile layout
+              const scrollOffset = itemElement.offsetTop - mobileSidebar.offsetTop - 20;
+              mobileSidebar.scrollTo({
+                top: scrollOffset,
+                behavior: 'smooth'
+              });
+            } else if (desktopSidebar && window.innerWidth >= 768) {
+              // Desktop layout
+              const scrollOffset = itemElement.offsetTop - desktopSidebar.offsetTop - 20;
+              desktopSidebar.scrollTo({
+                top: scrollOffset,
+                behavior: 'smooth'
+              });
+            }
           }
         }, 50);
       }
@@ -573,12 +585,26 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (newEditingId !== null) {
       setTimeout(() => {
         const itemElement = itemRefs.current[id];
-        if (itemElement && sidebarContentRef.current) {
-          const scrollOffset = itemElement.offsetTop - sidebarContentRef.current.offsetTop - 20;
-          sidebarContentRef.current.scrollTo({
-            top: scrollOffset,
-            behavior: 'smooth'
-          });
+        const mobileSidebar = sidebarContentRef.current;
+        const desktopSidebar = desktopSidebarContentRef.current;
+        
+        if (itemElement) {
+          // Check which sidebar is visible and scroll accordingly
+          if (mobileSidebar && window.innerWidth < 768) {
+            // Mobile layout
+            const scrollOffset = itemElement.offsetTop - mobileSidebar.offsetTop - 20;
+            mobileSidebar.scrollTo({
+              top: scrollOffset,
+              behavior: 'smooth'
+            });
+          } else if (desktopSidebar && window.innerWidth >= 768) {
+            // Desktop layout
+            const scrollOffset = itemElement.offsetTop - desktopSidebar.offsetTop - 20;
+            desktopSidebar.scrollTo({
+              top: scrollOffset,
+              behavior: 'smooth'
+            });
+          }
         }
       }, 50);
     }
@@ -612,7 +638,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const renderActionBar = () => (
     <div className="flex border-b border-gray-200 dark:border-gray-700">
       <button
-        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+        className={`flex-1 py-1.5 md:py-3 text-center text-xs md:text-sm font-medium border-b-2 ${
           activeTab === 'add' 
             ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -621,15 +647,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         data-tab="add"
       >
         <div className="flex flex-col items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 mb-0.5 md:mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>Add Person</span>
+          <span className="text-xs md:text-sm">Add</span>
         </div>
       </button>
       
       <button
-        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+        className={`flex-1 py-1.5 md:py-3 text-center text-xs md:text-sm font-medium border-b-2 ${
           activeTab === 'celebrities' 
             ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -638,15 +664,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         data-tab="celebrities"
       >
         <div className="flex flex-col items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 mb-0.5 md:mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
           </svg>
-          <span>Celebrities</span>
+          <span className="text-xs md:text-sm">Stars</span>
         </div>
       </button>
       
       <button
-        className={`flex-1 py-3 text-center text-sm font-medium border-b-2 ${
+        className={`flex-1 py-1.5 md:py-3 text-center text-xs md:text-sm font-medium border-b-2 ${
           activeTab === 'entities' 
             ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300' 
             : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -655,10 +681,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         data-tab="entities"
       >
         <div className="flex flex-col items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 mb-0.5 md:mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
           </svg>
-          <span>Entities</span>
+          <span className="text-xs md:text-sm">More</span>
         </div>
       </button>
     </div>
@@ -675,7 +701,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     
     return (
-      <div className="p-2 space-y-2">
+      <div className="p-1 md:p-2 space-y-1 md:space-y-2">
         {images.map(image => {
           const isDefaultSilhouette = image.src.includes('.svg') || image.src.startsWith('/images/');
           const currentEditingId = localEditingId !== null ? localEditingId : editingId;
@@ -685,15 +711,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div 
               key={image.id}
               ref={(el) => registerItemRef(image.id, el)}
-              className={`p-3 mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-sm
+              className={`p-2 md:p-3 mb-1 md:mb-2 bg-white dark:bg-gray-800 border rounded-t shadow-sm cursor-pointer flex flex-col text-xs md:text-sm
                 ${selectedId === image.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}
                 ${isEditing ? 'rounded-b-none' : 'rounded-b'}
               `}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 {/* Avatar/Silhouette with coloring */}
                 <div 
-                  className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${!isDefaultSilhouette ? '' : ''}`}
+                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0 overflow-hidden ${!isDefaultSilhouette ? '' : ''}`}
                   style={{
                     ...(isDefaultSilhouette ? {
                       // For SVG silhouettes, use mask approach
@@ -727,7 +753,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ></div>
                 
                 <div className="flex-grow">
-                  <div className="font-medium">{image.name || `Person ${image.id.slice(0, 3)}`}</div>
+                  <div className="font-medium text-xs md:text-sm">{image.name || `Person ${image.id.slice(0, 3)}`}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {Math.round(image.heightCm)}cm ({renderHeight(image.heightCm)})
                   </div>
@@ -736,9 +762,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div>
                   <button 
                     onClick={() => handleEditClick(image.id)}
-                    className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                    className="p-0.5 md:p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
@@ -748,26 +774,26 @@ const Sidebar: React.FC<SidebarProps> = ({
               {/* Expanded editing section */}
               {isEditing && (
                 <div 
-                  className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 rounded-b"
+                  className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-200 dark:border-gray-700 rounded-b space-y-2 md:space-y-3"
                   style={{
-                    backgroundColor: isDefaultSilhouette ? `${image.color}15` : 'transparent' // Use silhouette color with alpha for background
+                    backgroundColor: isDefaultSilhouette ? `${image.color}15` : 'transparent'
                   }}
                 >
                   {/* Done Editing button */}
                   <button 
-                    className="w-full py-2 mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center"
+                    className="w-full py-1 md:py-2 mb-2 md:mb-3 bg-blue-100 text-blue-700 rounded flex items-center justify-center text-xs md:text-sm"
                     onClick={handleDoneEditing}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Done Editing
                   </button>
                   
                   {/* Gender Selection */}
-                  <div className="grid grid-cols-2 gap-1 mb-3">
+                  <div className="grid grid-cols-2 gap-0.5 md:gap-1 mb-2 md:mb-3">
                     <button
-                      className={`py-2 px-4 rounded-l border ${
+                      className={`py-1 md:py-2 px-2 md:px-4 rounded-l border text-xs md:text-sm ${
                         image.gender === 'male' 
                           ? 'bg-blue-100 border-blue-500' 
                           : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
@@ -777,7 +803,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       Male
                     </button>
                     <button
-                      className={`py-2 px-4 rounded-r border ${
+                      className={`py-1 md:py-2 px-2 md:px-4 rounded-r border text-xs md:text-sm ${
                         image.gender === 'female' 
                           ? 'bg-blue-100 border-blue-500' 
                           : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
@@ -789,30 +815,31 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   
                   {/* Name Input */}
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                  <div className="mb-2 md:mb-3">
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Name</label>
                     <input 
                       type="text" 
                       placeholder="Enter name"
                       value={image.name}
                       onChange={(e) => onUpdate(image.id, { name: e.target.value })}
-                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                      className="w-full p-1 md:p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 text-xs md:text-sm"
+                      suppressHydrationWarning={true}
                     />
                   </div>
                   
                   {/* Height Input with Unit Toggle */}
-                  <div className="mb-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
+                  <div className="mb-2 md:mb-3">
+                    <div className="flex justify-between items-center mb-0.5 md:mb-1">
+                      <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">Height</label>
                       <div className="flex border rounded overflow-hidden">
                         <button 
-                          className={`px-2 py-1 text-xs ${editingHeightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                          className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${editingHeightUnit === 'ft' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
                           onClick={() => setEditingHeightUnit('ft')}
                         >
                           ft
                         </button>
                         <button 
-                          className={`px-2 py-1 text-xs ${editingHeightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+                          className={`px-1 md:px-2 py-0.5 md:py-1 text-xs ${editingHeightUnit === 'cm' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
                           onClick={() => setEditingHeightUnit('cm')}
                         >
                           cm
@@ -821,7 +848,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                     
                     {editingHeightUnit === 'ft' ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1 md:gap-2">
                         <div className="relative">
                           <input 
                             type="number" 
@@ -832,11 +859,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                               const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
                               onUpdate(image.id, { heightCm: newHeightCm });
                             }}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                            className="w-full p-1 md:p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 text-xs md:text-sm"
                             min="0"
                             step="1"
+                            suppressHydrationWarning={true}
                           />
-                          <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">ft</span>
+                          <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 dark:text-gray-400 text-xs">ft</span>
                         </div>
                         <div className="relative">
                           <input 
@@ -848,12 +876,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                               const newHeightCm = (feet * INCHES_PER_FOOT + inches) * CM_PER_INCH;
                               onUpdate(image.id, { heightCm: newHeightCm });
                             }}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                            className="w-full p-1 md:p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 text-xs md:text-sm"
                             min="0" 
                             max="11.99"
                             step="0.01"
+                            suppressHydrationWarning={true}
                           />
-                          <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">in</span>
+                          <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 dark:text-gray-400 text-xs">in</span>
                         </div>
                       </div>
                     ) : (
@@ -862,18 +891,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                           type="number" 
                           value={Math.round(image.heightCm)}
                           onChange={(e) => onUpdate(image.id, { heightCm: parseFloat(e.target.value) || 0 })}
-                          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                          className="w-full p-1 md:p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 text-xs md:text-sm"
                           min="0" 
                           step="1"
+                          suppressHydrationWarning={true}
                         />
-                        <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">cm</span>
+                        <span className="absolute right-1 md:right-3 top-1 md:top-2 text-gray-500 dark:text-gray-400 text-xs">cm</span>
                       </div>
                     )}
                   </div>
                   
                   {/* Color Selection */}
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                  <div className="mb-2 md:mb-3">
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Color</label>
                     <ColorPicker 
                       selectedColor={image.color}
                       onChange={(color) => onUpdate(image.id, { color })}
@@ -881,49 +911,49 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
 
                   {/* Vertical Adjustment */}
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vertical Adjustment</label>
+                  <div className="mb-2 md:mb-3">
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 md:mb-1">Vertical Adjustment</label>
                     <div className="flex items-center">
                       <button
                         onClick={() => {
-                          const stepSize = majorStep / 20; // 1/20th of the major step
+                          const stepSize = majorStep / 20;
                           onUpdate(image.id, { verticalOffsetCm: (image.verticalOffsetCm || 0) + stepSize });
                         }}
-                        className="p-2 rounded-l flex items-center justify-center hover:bg-opacity-80"
+                        className="p-1 md:p-2 rounded-l flex items-center justify-center hover:bg-opacity-80"
                         style={{ 
                           backgroundColor: image.color,
                           color: 'white'
                         }}
                         title="Move up"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                         </svg>
                       </button>
-                      <div className="flex-grow text-center text-sm text-gray-600 dark:text-gray-400 px-2 py-2 bg-white dark:bg-gray-700 border-t border-b border-gray-300 dark:border-gray-600">
+                      <div className="flex-grow text-center text-xs md:text-sm text-gray-600 dark:text-gray-400 px-1 md:px-2 py-1 md:py-2 bg-white dark:bg-gray-700 border-t border-b border-gray-300 dark:border-gray-600">
                         {(image.verticalOffsetCm || 0).toFixed(2)} cm
                       </div>
                       <button
                         onClick={() => {
-                          const stepSize = majorStep / 20; // 1/20th of the major step
+                          const stepSize = majorStep / 20;
                           onUpdate(image.id, { verticalOffsetCm: (image.verticalOffsetCm || 0) - stepSize });
                         }}
-                        className="p-2 rounded-r flex items-center justify-center hover:bg-opacity-80"
+                        className="p-1 md:p-2 rounded-r flex items-center justify-center hover:bg-opacity-80"
                         style={{ 
                           backgroundColor: image.color,
                           color: 'white'
                         }}
                         title="Move down"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1 italic">
+                    <div className="text-xs text-gray-500 mt-0.5 md:mt-1 italic">
                       Adjust to align feet position to ground level
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-500 mt-0.5 md:mt-1">
                       Step size: {(majorStep / 20).toFixed(2)} cm
                     </div>
                   </div>
@@ -934,9 +964,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onRemove(image.id);
                       setLocalEditingId(null);
                     }}
-                    className="w-full py-2 mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200"
+                    className="w-full py-1 md:py-2 mt-1 md:mt-2 bg-red-100 text-red-700 rounded flex items-center justify-center hover:bg-red-200 text-xs md:text-sm"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-5 md:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Delete
@@ -953,12 +983,61 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Conditional rendering based on active tab
   return (
     <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden sidebar-tabs ${className}`}>
-      {renderActionBar()}
+      {/* Desktop: Show tabs, Mobile: Hide tabs */}
+      <div className="hidden md:block">
+        {renderActionBar()}
+      </div>
       
-      <div ref={sidebarContentRef} className="flex-1 overflow-y-auto">
+      {/* Mobile: Two column layout */}
+      <div className="md:hidden flex-1 overflow-hidden">
+        <div className="grid grid-cols-2 h-full">
+          {/* Left Column: Add Person */}
+          <div className="border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+            <div className="p-1 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="text-center text-xs font-medium text-gray-700 dark:text-gray-300 py-1">
+                <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Person
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-1.5">
+              <PersonForm onSubmit={onAdd} buttonText="Add" />
+            </div>
+          </div>
+          
+          {/* Right Column: People List */}
+          <div className="flex flex-col overflow-hidden">
+            <div className="p-1 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="text-center text-xs font-medium text-gray-700 dark:text-gray-300 py-1">
+                <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a1.5 1.5 0 01-3 0 1.5 1.5 0 013 0z" />
+                  </svg>
+                  People ({images.length})
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto" ref={sidebarContentRef}>
+              {images.length === 0 ? (
+                <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-xs">
+                  No people added yet
+                </div>
+              ) : (
+                renderSilhouetteList()
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Desktop: Original tabbed content */}
+      <div className="hidden md:block flex-1 overflow-y-auto" ref={desktopSidebarContentRef}>
         {activeTab === 'add' && (
           <>
-            <div className="p-4">
+            <div className="p-1.5 md:p-4">
               <PersonForm onSubmit={onAdd} buttonText="Add Person" />
             </div>
             {images.length > 0 && renderSilhouetteList()}
@@ -966,13 +1045,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
         
         {activeTab === 'celebrities' && (
-          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-1.5 md:p-4 text-center text-gray-500 dark:text-gray-400 text-xs md:text-sm">
             Celebrity silhouettes will appear here.
           </div>
         )}
         
         {activeTab === 'entities' && (
-          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-1.5 md:p-4 text-center text-gray-500 dark:text-gray-400 text-xs md:text-sm">
             Entity silhouettes will appear here.
           </div>
         )}
@@ -1000,14 +1079,14 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
   zoomLevel = 50,
   className
 }) => (
-  <div className={`h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 z-10 sticky top-[0px] ${className}`}>
-    <div className="flex items-center space-x-1">
+  <div className={`h-10 md:h-12 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-1 md:px-4 z-10 sticky top-[0px] ${className}`}>
+    <div className="flex items-center space-x-0.5 md:space-x-1">
       <button 
         title="Zoom Out" 
-        className="p-1 border rounded flex items-center justify-center w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="p-0.5 md:p-1 border rounded flex items-center justify-center w-6 h-6 md:w-8 md:h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
         onClick={onZoomOut}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
         </svg>
       </button>
@@ -1017,30 +1096,41 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
         max="100"
         value={zoomLevel}
         onChange={(e) => onZoomChange && onZoomChange(parseInt(e.target.value))}
-        className="w-24 h-[4px]"
+        className="w-16 md:w-24 h-[4px]"
       />
       <button 
         title="Zoom In" 
-        className="p-1 border rounded flex items-center justify-center w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="p-0.5 md:p-1 border rounded flex items-center justify-center w-6 h-6 md:w-8 md:h-8 hover:bg-gray-100 dark:hover:bg-gray-700"
         onClick={onZoomIn}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
       </button>
     </div>
-    <div className="flex-grow text-center text-xs text-gray-500">HeightsComparison.com</div>
-    <div className="flex items-center space-x-1">
+    <div className="flex-grow text-center text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 px-1 md:px-2">
+      <span className="md:hidden">HeightsCompare.com</span>
+      <span className="hidden md:inline">HeightsComparison.com</span>
+    </div>
+    <div className="flex items-center space-x-0.5 md:space-x-1">
       <button 
-        className="text-xs p-1 border rounded" 
+        className="text-xs p-0.5 md:p-1 border rounded" 
         title="Clear All"
         onClick={onClearAll}
       >
-        Clear All
+        <span className="hidden md:inline">Clear All</span>
+        <span className="md:hidden">Clear</span>
       </button>
-      <button className="text-xs p-1 border rounded" title="Edit">Edit</button>
-      <button className="text-xs p-1 border rounded" title="More Options">•••</button>
-      <button className="text-xs p-1 bg-blue-500 text-white rounded px-3" title="Share">Share</button>
+      <button className="text-xs p-0.5 md:p-1 border rounded hidden md:block" title="Edit">Edit</button>
+      <button className="text-xs p-0.5 md:p-1 border rounded" title="More Options">•••</button>
+      <button className="text-xs p-0.5 md:p-1 bg-blue-500 text-white rounded px-1 md:px-3" title="Share">
+        <span className="hidden md:inline">Share</span>
+        <span className="md:hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+          </svg>
+        </span>
+      </button>
     </div>
   </div>
 );
