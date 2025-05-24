@@ -167,7 +167,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
 
   // Drag threshold constants
   const DRAG_THRESHOLD_PX = 20; // Minimum pixels to move before starting drag - increased sensitivity
-  const LONG_PRESS_DURATION = 1000; // ms for long press to enable drag on mobile
+  const LONG_PRESS_DURATION = 100; // ms for long press to enable drag on mobile
 
   // Internal zoom state - tied to parent's zoomLevel prop
   const [internalZoomLevel, setInternalZoomLevel] = useState<number>(zoomLevel);
@@ -321,7 +321,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDragStartY(e.clientY);
     setIsDragging(true);
     setDragThresholdMet(false);
-  }, [onImageUpdate]);
+    // Reset mobile-specific states for desktop interaction
+    setLongPressActivated(false);
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  }, [onImageUpdate, longPressTimer]);
 
   // Handle touch start for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent, imageId: string) => {
@@ -392,33 +398,26 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     
     const deltaX = e.touches[0].clientX - dragStartX;
     const deltaY = e.touches[0].clientY - dragStartY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     
-    // Clear long press timer if user starts moving before long press completes
-    if (longPressTimer && !longPressActivated) {
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      if (distance >= DRAG_THRESHOLD_PX) {
+    // On mobile (touch), ONLY allow dragging after long press is activated
+    if (!longPressActivated) {
+      // If user moves before long press completes, clear the timer and prevent drag
+      if (longPressTimer && distance >= DRAG_THRESHOLD_PX) {
         clearTimeout(longPressTimer);
         setLongPressTimer(null);
-        return; // Don't allow drag without long press
       }
-      return; // Don't move until long press or threshold
+      return; // Don't allow any movement until long press is activated
     }
     
-    // Check if drag threshold is met or long press was activated
-    if (!dragThresholdMet && !longPressActivated) {
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      if (distance >= DRAG_THRESHOLD_PX || longPressActivated) {
-        setDragThresholdMet(true);
-        setShowMobileButtons(null); // Hide mobile buttons when dragging starts
-        // Prevent default to stop scrolling when dragging
-        e.preventDefault();
-      } else {
-        return; // Don't move until threshold is met
-      }
-    } else {
-      // Prevent default to stop scrolling when dragging
-      e.preventDefault();
+    // Only proceed with dragging if long press was activated
+    if (!dragThresholdMet) {
+      setDragThresholdMet(true);
+      setShowMobileButtons(null); // Hide mobile buttons when dragging starts
     }
+    
+    // Prevent default to stop scrolling when dragging
+    e.preventDefault();
     
     const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
     const deltaYCm = -deltaY / pixelsPerCm;
@@ -454,7 +453,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setIsDragging(false);
     setDraggedImage(null);
     setDragThresholdMet(false);
-  }, [isDragging, dragThresholdMet, draggedImage, onEdit]);
+    // Reset mobile-specific states
+    setLongPressActivated(false);
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  }, [isDragging, dragThresholdMet, draggedImage, onEdit, longPressTimer]);
 
   // Handle touch end for mobile
   const handleTouchEnd = useCallback(() => {
