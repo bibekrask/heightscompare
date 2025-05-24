@@ -31,7 +31,6 @@ const SCALE_TOP_FACTOR = 1.1; // Show 10% margin above highest content
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
 const MAJOR_INTERVALS = 10; // Number of intervals for major lines (e.g., every 10% of range)
-const LABEL_WIDTH_PX = 60; // Approx width for side labels (adjust as needed)
 const FIGURE_LABEL_OFFSET_Y = -1; // Pixels above figure head for label - Adjusted to -1
 const epsilon = 1e-6;
 
@@ -160,7 +159,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [dragStartY, setDragStartY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragThresholdMet, setDragThresholdMet] = useState(false);
-  const [touchStartTime, setTouchStartTime] = useState<number>(0);
   const [showMobileButtons, setShowMobileButtons] = useState<string | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [longPressActivated, setLongPressActivated] = useState<boolean>(false);
@@ -339,7 +337,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setDragStartY(e.touches[0].clientY);
     setIsDragging(true);
     setDragThresholdMet(false);
-    setTouchStartTime(Date.now());
     setLongPressActivated(false);
     
     // Set timer for long press to enable drag mode
