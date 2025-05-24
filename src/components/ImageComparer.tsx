@@ -193,8 +193,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     if (containerRef.current) {
         height = containerRef.current.offsetHeight;
         width = containerRef.current.offsetWidth;
-        // Calculate the available width between the CM and Ft/In markers
-        availableWidth = Math.max(100, width - (LABEL_WIDTH_PX * 2 + 16)); // 16px for padding
+        // Use full width since labels are now below the lines
+        availableWidth = Math.max(100, width - 80); // 16px for padding
         
         setContainerHeightPx(height > 0 ? height : 0);
         // Removed unused state update
@@ -374,23 +374,23 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
     if (imageToUpdate) {
-      // Add viewport boundaries to prevent dragging outside
+      // Allow completely free dragging anywhere within the full viewport area
       const newHorizontalOffset = imageToUpdate.horizontalOffsetCm + deltaXCm;
       const newVerticalOffset = imageToUpdate.verticalOffsetCm + deltaYCm;
       
-      // Constrain to reasonable bounds (adjust as needed)
-      const maxHorizontalOffset = 50; // cm
-      const maxVerticalOffset = 50; // cm
+      // Set very generous bounds to allow dragging anywhere in the viewport area
+      const maxHorizontalOffsetCm = availableWidthPx > 0 ? (availableWidthPx * 1.5) / pixelsPerCm : 1000;
+      const maxVerticalOffsetCm = containerHeightPx > 0 ? (containerHeightPx * 1.5) / pixelsPerCm : 1000;
       
       onImageUpdate(draggedImage, {
-        horizontalOffsetCm: Math.max(-maxHorizontalOffset, Math.min(maxHorizontalOffset, newHorizontalOffset)),
-        verticalOffsetCm: Math.max(-maxVerticalOffset, Math.min(maxVerticalOffset, newVerticalOffset))
+        horizontalOffsetCm: Math.max(-maxHorizontalOffsetCm, Math.min(maxHorizontalOffsetCm, newHorizontalOffset)),
+        verticalOffsetCm: Math.max(-maxVerticalOffsetCm, Math.min(maxVerticalOffsetCm, newVerticalOffset))
       });
     }
     
     setDragStartX(e.clientX);
     setDragStartY(e.clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, availableWidthPx, containerHeightPx]);
 
   // Handle touch move for mobile
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -424,23 +424,23 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
     if (imageToUpdate) {
-      // Add viewport boundaries to prevent dragging outside
+      // Allow completely free dragging anywhere within the full viewport area
       const newHorizontalOffset = imageToUpdate.horizontalOffsetCm + deltaXCm;
       const newVerticalOffset = imageToUpdate.verticalOffsetCm + deltaYCm;
       
-      // Constrain to reasonable bounds (adjust as needed)
-      const maxHorizontalOffset = 50; // cm
-      const maxVerticalOffset = 50; // cm
+      // Set very generous bounds to allow dragging anywhere in the viewport area
+      const maxHorizontalOffsetCm = availableWidthPx > 0 ? (availableWidthPx * 1.5) / pixelsPerCm : 1000;
+      const maxVerticalOffsetCm = containerHeightPx > 0 ? (containerHeightPx * 1.5) / pixelsPerCm : 1000;
       
       onImageUpdate(draggedImage, {
-        horizontalOffsetCm: Math.max(-maxHorizontalOffset, Math.min(maxHorizontalOffset, newHorizontalOffset)),
-        verticalOffsetCm: Math.max(-maxVerticalOffset, Math.min(maxVerticalOffset, newVerticalOffset))
+        horizontalOffsetCm: Math.max(-maxHorizontalOffsetCm, Math.min(maxHorizontalOffsetCm, newHorizontalOffset)),
+        verticalOffsetCm: Math.max(-maxVerticalOffsetCm, Math.min(maxVerticalOffsetCm, newVerticalOffset))
       });
     }
     
     setDragStartX(e.touches[0].clientX);
     setDragStartY(e.touches[0].clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, longPressTimer, longPressActivated]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, longPressTimer, longPressActivated, availableWidthPx, containerHeightPx]);
 
   // Handle mouse up to end drag
   const handleMouseUp = useCallback(() => {
@@ -565,28 +565,14 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
           minHeight: '100%'
         }}
       >
-        {/* Scale Unit Labels at the top */}
-        <div className="absolute top-2 left-0 right-0 flex justify-between z-20 pointer-events-none">
-          <div 
-            className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded px-1"
-            style={{ 
-              width: `${LABEL_WIDTH_PX}px`, 
-              textAlign: 'center',
-              marginLeft: `${LABEL_WIDTH_PX * 0.3}px` // Move CM label to the right
-            }}
-          >
+        {/* Scale Unit Headers */}
+        <div className="absolute top-0 left-0 right-0 flex justify-between z-10 pointer-events-none px-1">
+          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 px-2 py-1 rounded shadow-sm">
             CM
-          </div>
-          <div 
-            className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded px-1"
-            style={{ 
-              width: `${LABEL_WIDTH_PX}px`, 
-              textAlign: 'center',
-              marginRight: `${LABEL_WIDTH_PX * 0.3}px` // Move Feet'Inch" label to the left
-            }}
-          >
-            Feet&apos;Inch&quot;
-          </div>
+          </span>
+          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 px-2 py-1 rounded shadow-sm">
+            Feet
+          </span>
         </div>
 
         {/* Background Grid/Scales */} 
@@ -597,25 +583,33 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                 
                 return (
                 <div key={`mark-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom}px` }}>
-                    {/* Line */}
+                    {/* Line - Full width */}
                     <div 
-                      className={`mx-auto ${isZeroLine ? 'h-0.5 bg-red-500' : 'h-px bg-gray-300 dark:bg-gray-600'}`}
-                      style={{ width: `calc(100% - ${LABEL_WIDTH_PX * 2}px)`}} // Line stops before labels
+                      className={`w-full ${isZeroLine ? 'h-0.5 bg-red-500' : 'h-px bg-gray-300 dark:bg-gray-600'}`}
                     ></div>
-                    {/* Left Label (CM) */}
-                    <span 
-                      className="absolute left-0 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
-                      style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
-                    >
-                        {mark.labelCm}
-                    </span>
-                    {/* Right Label (Ft) */}
-                    <span 
-                      className="absolute right-0 text-xs text-gray-500 dark:text-gray-400 text-left pl-2"
-                      style={{ bottom: '-0.6em', width: `${LABEL_WIDTH_PX}px` }}
-                    >
+                   </div>
+                );
+           })}
+        </div>
+        
+        {/* Scale Labels Layer - Above figures but below interactive elements */}
+        <div className="absolute inset-0 pointer-events-none z-5">
+            {pixelsPerCm > 0 && majorHorizontalMarks.map((mark) => {
+                const positionBottom = (mark.valueCm - finalScaleBottomCm) * pixelsPerCm;
+                
+                return (
+                <div key={`label-${mark.valueCm}`} className="absolute left-0 right-0" style={{ bottom: `${positionBottom - 20}px` }}>
+                    {/* Labels below the line */}
+                    <div className="flex justify-between w-full mt-1">
+                      {/* Left Label (CM) */}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-1 rounded">
+                        {mark.labelCm} cm
+                      </span>
+                      {/* Right Label (Ft) */}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-1 rounded">
                         {mark.labelFtIn}
-                       </span>
+                      </span>
+                    </div>
                    </div>
                 );
            })}
@@ -625,9 +619,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
         <div 
           className="absolute inset-0 z-10" 
           style={{ 
-              paddingLeft: `${LABEL_WIDTH_PX}px`, 
-              paddingRight: `${LABEL_WIDTH_PX}px`,
-              paddingBottom: `${zeroLineOffsetPx}px` // Align base with 0 line
+              paddingBottom: `${zeroLineOffsetPx}px`, // Align base with 0 line + space for labels
+              paddingLeft: '8px',
+              paddingRight: '8px'
           }}
         >
             {/* Use Flexbox to arrange figures horizontally */}
