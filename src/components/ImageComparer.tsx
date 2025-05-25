@@ -243,7 +243,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   
   let finalScaleTopCm = zoomAdjustedTopCmInitial;
   let finalScaleBottomCm = zoomAdjustedBottomCmInitial;
-  let totalRangeCmInitial = finalScaleTopCm - finalScaleBottomCm;
+  const totalRangeCmInitial = finalScaleTopCm - finalScaleBottomCm;
 
   // --- Combined Horizontal and Vertical Scaling ---
   const IMAGE_GAP_PX = 16; // Default gap between images
@@ -255,11 +255,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
 
   let horizontalScaleFactor = 1;
   let scaledGap = IMAGE_GAP_PX;
-  let figureDimensionsUnscaled = images.map(image => ({
-      id: image.id,
-      width: 0,
-      height: 0,
-  }));
 
   if (initialPixelsPerCm > 0 && images.length > 0 && availableWidthPx > 0) {
     const unscaledDimensions = images.map(image => {
@@ -267,7 +262,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       const width = Math.max(1, height * image.aspectRatio);
       return { id: image.id, width, height };
     });
-    figureDimensionsUnscaled = unscaledDimensions;
 
     const totalIdealWidth = unscaledDimensions.reduce((sum, dim) => sum + dim.width, 0) +
                           (images.length > 1 ? (images.length - 1) * IMAGE_GAP_PX : 0);
