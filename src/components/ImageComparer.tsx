@@ -284,34 +284,19 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   if (horizontalScaleFactor < 1) {
     finalScaleTopCm = zoomAdjustedTopCmInitial / horizontalScaleFactor;
     finalScaleBottomCm = zoomAdjustedBottomCmInitial / horizontalScaleFactor;
-    // Recalculate major step based on the new, larger range if necessary
-    // This ensures the number of lines remains roughly constant.
-    const newPositiveRangeForStep = Math.max(epsilon, finalScaleTopCm);
-    if (newPositiveRangeForStep > epsilon) {
-        const niceFractions = [1, 2, 2.5, 5, 10];
-        const rawStep = newPositiveRangeForStep / MAJOR_INTERVALS; // Use the same MAJOR_INTERVALS
-        const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
-        const normalizedStep = rawStep / pow10;
-        let bestFraction = niceFractions[niceFractions.length - 1];
-        let minDiff = Infinity;
-        for (const frac of niceFractions) {
-            const diff = Math.abs(normalizedStep - frac);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestFraction = frac;
-            }
-        }
-        calculatedMajorStep = bestFraction * pow10;
+    // Scale the major step proportionally to maintain the same number of lines
+    // at the same pixel positions, but with adjusted scale values
+    // Round to avoid floating-point precision issues
+    const scaledStep = calculatedMajorStep / horizontalScaleFactor;
+    
+    // Determine appropriate rounding based on the magnitude of the scaled step
+    if (scaledStep >= 100) {
+      calculatedMajorStep = Math.round(scaledStep);
+    } else if (scaledStep >= 10) {
+      calculatedMajorStep = Math.round(scaledStep * 10) / 10;
+    } else {
+      calculatedMajorStep = Math.round(scaledStep * 100) / 100;
     }
-    calculatedMajorStep = Math.max(10, calculatedMajorStep); 
-    
-    // Limit the bottom scale to ensure at most 2 negative lines
-    // Calculate what the bottom should be to have exactly 2 negative lines
-    const maxNegativeLines = 2;
-    const limitedBottomCm = -calculatedMajorStep * maxNegativeLines;
-    
-    // Use the more restrictive (less negative) of the two values
-    finalScaleBottomCm = Math.max(finalScaleBottomCm, limitedBottomCm);
   }
   
   const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
