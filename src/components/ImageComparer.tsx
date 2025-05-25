@@ -60,7 +60,7 @@ const cmToCmLabel = (cm: number): string => {
     return `${Math.round(cm)}`; // Just the number for the scale
 };
 
-const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): Array<{
+const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number, majorStepParam?: number): Array<{
   valueCm: number;
   labelCm: string;
   labelFtIn: string;
@@ -68,30 +68,31 @@ const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: number): Arr
     const totalRange = scaleTopCm - scaleBottomCm;
     if (totalRange <= epsilon) return [];
 
-    // --- Dynamic Nice Step Calculation ---
-    const positiveRange = Math.max(epsilon, scaleTopCm);
-    const niceFractions = [1, 2, 2.5, 5, 10];
-    let majorStep = 10; // Default/minimum step
+    // Use provided majorStepParam if available, otherwise calculate it
+    let majorStep = majorStepParam;
+    if (majorStep === undefined) {
+      const positiveRange = Math.max(epsilon, scaleTopCm);
+      const niceFractions = [1, 2, 2.5, 5, 10];
+      majorStep = 10; // Default/minimum step
 
-    if (positiveRange > epsilon) {
-        const rawStep = positiveRange / MAJOR_INTERVALS;
-        const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
-        const normalizedStep = rawStep / pow10;
+      if (positiveRange > epsilon) {
+          const rawStep = positiveRange / MAJOR_INTERVALS;
+          const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+          const normalizedStep = rawStep / pow10;
 
-        // Find the closest nice fraction
-        let bestFraction = niceFractions[niceFractions.length - 1]; // Start with 10
-        let minDiff = Infinity;
-        for (const frac of niceFractions) {
-            const diff = Math.abs(normalizedStep - frac);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestFraction = frac;
-            }
-        }
-        majorStep = bestFraction * pow10;
+          let bestFraction = niceFractions[niceFractions.length - 1];
+          let minDiff = Infinity;
+          for (const frac of niceFractions) {
+              const diff = Math.abs(normalizedStep - frac);
+              if (diff < minDiff) {
+                  minDiff = diff;
+                  bestFraction = frac;
+              }
+          }
+          majorStep = bestFraction * pow10;
+      }
+      majorStep = Math.max(10, majorStep);
     }
-    // Ensure a minimum step size
-    majorStep = Math.max(10, majorStep); 
     // --- End Dynamic Nice Step Calculation ---
 
     const majorMarks: Array<{
@@ -205,19 +206,14 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const maxImageHeight = images.length > 0 
       ? Math.max(1, ...images.map(img => img.heightCm || 0)) 
       : 0;
-  // Use a default max if no images, or base on tallest image
-  const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : 200; // Default height like screenshot
+  const actualMaxCm = maxImageHeight > 0 ? maxImageHeight : 200;
 
-  // Scale top based on max content + margin
   const baseScaleTopCm = actualMaxCm * SCALE_TOP_FACTOR;
-  
-  // Apply zoom level to the scale - lower zoom level means more range is shown
-  const zoomFactor = (110 - internalZoomLevel) / 50; // Ranges from 0.2 (zoomLevel=100) to 2.0 (zoomLevel=10)
-  const zoomAdjustedTopCm = baseScaleTopCm * zoomFactor;
-  
-  // Calculate dynamic majorStep first (mirroring logic in generateHorizontalMarks)
-  let calculatedMajorStep = 10; // Default/minimum step
-  const positiveRangeForStep = Math.max(epsilon, zoomAdjustedTopCm); // Use zoomAdjustedTopCm here
+  const zoomFactor = (110 - internalZoomLevel) / 50;
+  const zoomAdjustedTopCmInitial = baseScaleTopCm * zoomFactor;
+
+  let calculatedMajorStep = 10;
+  const positiveRangeForStep = Math.max(epsilon, zoomAdjustedTopCmInitial);
   if (positiveRangeForStep > epsilon) {
       const niceFractions = [1, 2, 2.5, 5, 10];
       const rawStep = positiveRangeForStep / MAJOR_INTERVALS;
@@ -235,38 +231,93 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       calculatedMajorStep = bestFraction * pow10;
   }
   calculatedMajorStep = Math.max(10, calculatedMajorStep);
-  // --- End dynamic step calculation ---
 
-  // Notify parent component of major step change when it changes
   useEffect(() => {
     if (onMajorStepChange) {
       onMajorStepChange(calculatedMajorStep);
     }
   }, [calculatedMajorStep, onMajorStepChange]);
 
-  // Scale bottom: Use calculated step to add margin below the first negative line
-  // Always ensure we have at least one negative mark by forcing the bottom scale to include -calculatedMajorStep
-  const baseScaleBottomCm = -calculatedMajorStep * 1.2; // Push bottom down slightly
+  const baseScaleBottomCm = -calculatedMajorStep * 1.2; 
+  const zoomAdjustedBottomCmInitial = baseScaleBottomCm * zoomFactor;
   
-  // Apply zoom but ensure minimum negative space by using Math.min
-  // This guarantees that even at high zoom levels, we'll see at least one negative line
-  
-  // First determine minimum negative space needed for at least one negative mark
-  const minimumNegativeSpace = -calculatedMajorStep * 1.1; // Space for at least one negative mark
-  
-  // Calculate where the scale bottom would be if we just applied zoom factor
-  const rawZoomAdjustedBottomCm = baseScaleBottomCm * zoomFactor;
-  
-  // If zoomAdjustedBottomCm is too small (not negative enough), force it to show at least one negative line
-  const zoomAdjustedBottomCm = Math.min(rawZoomAdjustedBottomCm, minimumNegativeSpace);
-  
-  const finalScaleTopCm = zoomAdjustedTopCm;
-  const finalScaleBottomCm = zoomAdjustedBottomCm;
+  let finalScaleTopCm = zoomAdjustedTopCmInitial;
+  let finalScaleBottomCm = zoomAdjustedBottomCmInitial;
+  let totalRangeCmInitial = finalScaleTopCm - finalScaleBottomCm;
 
-  const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm);
+  // --- Combined Horizontal and Vertical Scaling ---
+  const IMAGE_GAP_PX = 16; // Default gap between images
+  
+  // Calculate an initial pixelsPerCm to estimate figure dimensions
+  const initialPixelsPerCm = containerHeightPx > 0 && totalRangeCmInitial > 0
+    ? containerHeightPx / totalRangeCmInitial
+    : 0;
+
+  let horizontalScaleFactor = 1;
+  let scaledGap = IMAGE_GAP_PX;
+  let figureDimensionsUnscaled = images.map(image => ({
+      id: image.id,
+      width: 0,
+      height: 0,
+  }));
+
+  if (initialPixelsPerCm > 0 && images.length > 0 && availableWidthPx > 0) {
+    const unscaledDimensions = images.map(image => {
+      const height = Math.max(1, image.heightCm * initialPixelsPerCm);
+      const width = Math.max(1, height * image.aspectRatio);
+      return { id: image.id, width, height };
+    });
+    figureDimensionsUnscaled = unscaledDimensions;
+
+    const totalIdealWidth = unscaledDimensions.reduce((sum, dim) => sum + dim.width, 0) +
+                          (images.length > 1 ? (images.length - 1) * IMAGE_GAP_PX : 0);
+
+    if (totalIdealWidth > availableWidthPx) {
+      horizontalScaleFactor = availableWidthPx / totalIdealWidth;
+    }
+    scaledGap = IMAGE_GAP_PX * horizontalScaleFactor;
+  }
+  
+  // If horizontal scaling is applied, adjust the vertical range to match
+  // This makes the scale markings "larger" in cm value, effectively shrinking them
+  // to match the shrunken images, while keeping containerHeightPx constant.
+  if (horizontalScaleFactor < 1) {
+    finalScaleTopCm = zoomAdjustedTopCmInitial / horizontalScaleFactor;
+    finalScaleBottomCm = zoomAdjustedBottomCmInitial / horizontalScaleFactor;
+    // Recalculate major step based on the new, larger range if necessary
+    // This ensures the number of lines remains roughly constant.
+    const newPositiveRangeForStep = Math.max(epsilon, finalScaleTopCm);
+    if (newPositiveRangeForStep > epsilon) {
+        const niceFractions = [1, 2, 2.5, 5, 10];
+        const rawStep = newPositiveRangeForStep / MAJOR_INTERVALS; // Use the same MAJOR_INTERVALS
+        const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalizedStep = rawStep / pow10;
+        let bestFraction = niceFractions[niceFractions.length - 1];
+        let minDiff = Infinity;
+        for (const frac of niceFractions) {
+            const diff = Math.abs(normalizedStep - frac);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestFraction = frac;
+            }
+        }
+        calculatedMajorStep = bestFraction * pow10;
+    }
+    calculatedMajorStep = Math.max(10, calculatedMajorStep); 
+    
+    // Limit the bottom scale to ensure at most 2 negative lines
+    // Calculate what the bottom should be to have exactly 2 negative lines
+    const maxNegativeLines = 2;
+    const limitedBottomCm = -calculatedMajorStep * maxNegativeLines;
+    
+    // Use the more restrictive (less negative) of the two values
+    finalScaleBottomCm = Math.max(finalScaleBottomCm, limitedBottomCm);
+  }
+  
   const totalRangeCm = finalScaleTopCm - finalScaleBottomCm;
+  const majorHorizontalMarks = generateHorizontalMarks(finalScaleTopCm, finalScaleBottomCm, calculatedMajorStep); // Pass calculatedMajorStep
 
-  // Calculate PixelsPerCm (vertical scale)
+  // Calculate PixelsPerCm (vertical scale) using the potentially adjusted totalRangeCm
   const pixelsPerCm = containerHeightPx > 0 && totalRangeCm > 0 
       ? containerHeightPx / totalRangeCm 
       : 0;
@@ -276,37 +327,23 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       ? Math.max(0, (0 - finalScaleBottomCm) * pixelsPerCm) 
       : 0;
   
-  // --- Horizontal Scaling Calculations ---
-  // Calculate the ideal width needed for all images
-  const IMAGE_GAP_PX = 16; // Default gap between images
-  
-  const calculateImageDimensions = () => {
-    if (pixelsPerCm <= 0 || images.length === 0) return { figureDimensions: [], horizontalScale: 1, scaledGap: IMAGE_GAP_PX };
+  // --- Figure Dimension Calculation (using final pixelsPerCm) ---
+  const calculateFinalImageDimensions = () => {
+    if (pixelsPerCm <= 0 || images.length === 0) {
+      return images.map(img => ({ id: img.id, width: 0, height: 0 }));
+    }
     
-    // Calculate ideal dimensions for each image
-    const figureDimensions = images.map(image => {
-      const height = Math.max(1, image.heightCm * pixelsPerCm);
-      const width = Math.max(1, height * image.aspectRatio);
-      return { id: image.id, width, height };
+    return images.map(image => {
+      // The height in cm is the source of truth.
+      // The pixel height is derived from cm height * pixelsPerCm.
+      // Aspect ratio is maintained.
+      const heightPx = Math.max(1, image.heightCm * pixelsPerCm);
+      const widthPx = Math.max(1, heightPx * image.aspectRatio);
+      return { id: image.id, width: widthPx, height: heightPx };
     });
-    
-    // Calculate total ideal width including gaps
-    const totalIdealWidth = figureDimensions.reduce((sum, dim) => sum + dim.width, 0) + 
-                          (images.length > 1 ? (images.length - 1) * IMAGE_GAP_PX : 0);
-    
-    // Calculate horizontal scale factor if images don't fit
-    const horizontalScale = availableWidthPx > 0 && totalIdealWidth > availableWidthPx
-      ? availableWidthPx / totalIdealWidth
-      : 1;
-    
-    // Scale the gap proportionally
-    const scaledGap = horizontalScale < 1 ? IMAGE_GAP_PX * horizontalScale : IMAGE_GAP_PX;
-    
-    return { figureDimensions, horizontalScale, scaledGap };
   };
   
-  const { figureDimensions, horizontalScale, scaledGap } = calculateImageDimensions();
-  
+  const figureDimensions = calculateFinalImageDimensions();
   // --- End of Scale Calculations --- 
 
   // Handle mouse down to start drag
@@ -366,8 +403,14 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       }
     }
     
-    const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
-    const deltaYCm = -deltaY / pixelsPerCm;
+    // horizontalScaleFactor is already incorporated into pixelsPerCm for vertical scaling
+    // For horizontal dragging, we still need to account for the scaled width of figures.
+    // If figures are consuming less width on screen (horizontalScaleFactor < 1), then a mouse drag
+    // in pixels should translate to a larger change in cm.
+    const effectiveHorizontalPixelsPerCm = pixelsPerCm * horizontalScaleFactor;
+
+    const deltaXCm = deltaX / effectiveHorizontalPixelsPerCm;
+    const deltaYCm = -deltaY / pixelsPerCm; // Vertical dragging is direct with pixelsPerCm
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
     if (imageToUpdate) {
@@ -387,7 +430,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     
     setDragStartX(e.clientX);
     setDragStartY(e.clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, availableWidthPx, containerHeightPx]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScaleFactor, images, dragThresholdMet, DRAG_THRESHOLD_PX, availableWidthPx, containerHeightPx]);
 
   // Handle touch move for mobile
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -416,7 +459,9 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     // Prevent default to stop scrolling when dragging
     e.preventDefault();
     
-    const deltaXCm = deltaX / pixelsPerCm / (horizontalScale < 1 ? horizontalScale : 1);
+    const effectiveHorizontalPixelsPerCm = pixelsPerCm * horizontalScaleFactor;
+
+    const deltaXCm = deltaX / effectiveHorizontalPixelsPerCm;
     const deltaYCm = -deltaY / pixelsPerCm;
     
     const imageToUpdate = images.find(img => img.id === draggedImage);
@@ -437,7 +482,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     
     setDragStartX(e.touches[0].clientX);
     setDragStartY(e.touches[0].clientY);
-  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScale, images, dragThresholdMet, DRAG_THRESHOLD_PX, longPressTimer, longPressActivated, availableWidthPx, containerHeightPx]);
+  }, [isDragging, draggedImage, dragStartX, dragStartY, onImageUpdate, pixelsPerCm, horizontalScaleFactor, images, dragThresholdMet, DRAG_THRESHOLD_PX, longPressTimer, longPressActivated, availableWidthPx, containerHeightPx]);
 
   // Handle mouse up to end drag
   const handleMouseUp = useCallback(() => {
@@ -626,7 +671,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
               ref={figuresContainerRef}
               className="relative flex items-end justify-center h-full w-full"
               style={{
-                gap: `${scaledGap}px`, // Apply scaled gap
+                gap: `${scaledGap}px`, // Apply scaled gap (already adjusted by horizontalScaleFactor)
                 maxWidth: '100%'
               }}
             >
@@ -634,13 +679,16 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
                     const dimensions = figureDimensions.find(d => d.id === image.id);
                     if (!dimensions) return null;
                     
-                    // Apply horizontal scaling
-                    const finalWidth = dimensions.width * (horizontalScale < 1 ? horizontalScale : 1);
-                    const finalHeight = dimensions.height * (horizontalScale < 1 ? horizontalScale : 1);
+                    // Dimensions.width and dimensions.height are now the final, scaled pixel values.
+                    // horizontalScaleFactor is already incorporated into pixelsPerCm, which then affects dimensions.
+                    const finalWidth = dimensions.width;
+                    const finalHeight = dimensions.height;
                     
-                    // Scale offsets proportionally
-                    const offsetX = image.horizontalOffsetCm * pixelsPerCm * (horizontalScale < 1 ? horizontalScale : 1);
-                    const offsetY = -image.verticalOffsetCm * pixelsPerCm;
+                    // Scale offsets proportionally.
+                    // For horizontal offset, we need to use the effectiveHorizontalPixelsPerCm.
+                    const effectiveHorizontalPixelsPerCm = pixelsPerCm * horizontalScaleFactor;
+                    const offsetX = image.horizontalOffsetCm * effectiveHorizontalPixelsPerCm;
+                    const offsetY = -image.verticalOffsetCm * pixelsPerCm; // Vertical offset uses direct pixelsPerCm
                     
                     const figureLabel = `${image.name}\ncm: ${Math.round(image.heightCm)}\nft: ${cmToFtIn(image.heightCm)}`;
 
