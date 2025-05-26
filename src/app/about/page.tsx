@@ -32,7 +32,7 @@ export default function AboutPage() {
             should be visual, intuitive, and available to everyone, completely free of charge.
           </p>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            Whether you're comparing celebrity heights, planning a group photo, understanding sports 
+            Whether you&apos;re comparing celebrity heights, planning a group photo, understanding sports 
             statistics, or simply satisfying your curiosity, our tool makes height visualization 
             simple and engaging.
           </p>
@@ -183,7 +183,7 @@ export default function AboutPage() {
         <section className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
           <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Get in Touch</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-4">
-            Have questions, suggestions, or feedback? We'd love to hear from you! Our team is 
+            Have questions, suggestions, or feedback? We&apos;d love to hear from you! Our team is 
             committed to making Heights Compare the best height comparison tool available.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">

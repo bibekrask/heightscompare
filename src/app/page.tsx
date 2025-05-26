@@ -1181,8 +1181,8 @@ const SEOContent = () => (
       <div className="prose prose-lg max-w-4xl mx-auto text-gray-700 dark:text-gray-300">
         <h3 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">How to Use the Height Comparison Tool</h3>
         <ol className="list-decimal ml-6 space-y-3 mb-8">
-          <li>Click "Add Person" to create a new silhouette for height comparing</li>
-          <li>Enter the person's name and height in cm or feet/inches for height conversion</li>
+          <li>Click &quot;Add Person&quot; to create a new silhouette for height comparing</li>
+          <li>Enter the person&apos;s name and height in cm or feet/inches for height conversion</li>
           <li>Choose male or female silhouette and customize the color</li>
           <li>Add multiple people to compare heights side by side using our height comparator</li>
           <li>Drag and position the silhouettes for the perfect height comparison chart</li>
@@ -1219,7 +1219,7 @@ const SEOContent = () => (
           <div>
             <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Personal & Educational</h4>
             <ul className="list-disc ml-6 space-y-2">
-              <li><strong>Family Growth Tracking:</strong> Monitor children's height progress over time</li>
+              <li><strong>Family Growth Tracking:</strong> Monitor children&apos;s height progress over time</li>
               <li><strong>Educational Projects:</strong> Height comparison studies and statistics</li>
               <li><strong>Social Media Content:</strong> Create engaging height comparison posts</li>
               <li><strong>Fitness & Health:</strong> Compare heights in fitness and bodybuilding communities</li>

@@ -175,7 +175,7 @@ ${formData.message}
           {submitStatus === 'success' && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
               <p className="text-green-800 dark:text-green-200">
-                ✅ Your email client should have opened with your message. If it didn't open automatically, 
+                ✅ Your email client should have opened with your message. If it didn&apos;t open automatically, 
                 please copy the information and send it manually to heightscompare@gmail.com
               </p>
             </div>

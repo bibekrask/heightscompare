@@ -48,15 +48,15 @@ export default function FAQPage() {
     },
     {
       question: "Can I save my height comparisons?",
-      answer: "Your comparisons are automatically saved in your browser's local storage, so they'll be there when you return. For permanent saving or sharing, you can use the share feature to create a link to your comparison."
+      answer: "Your comparisons are automatically saved in your browser&apos;s local storage, so they&apos;ll be there when you return. For permanent saving or sharing, you can use the share feature to create a link to your comparison."
     },
     {
       question: "How do I convert between feet/inches and centimeters?",
-      answer: "The tool automatically handles conversions between metric and imperial units. Simply toggle between 'ft/in' and 'cm' modes, and the measurements will be converted accurately in real-time."
+      answer: "The tool automatically handles conversions between metric and imperial units. Simply toggle between &apos;ft/in&apos; and &apos;cm&apos; modes, and the measurements will be converted accurately in real-time."
     },
     {
-      question: "What's the maximum height I can enter?",
-      answer: "There's no strict maximum height limit, but the tool is optimized for human heights typically ranging from 3 feet to 8 feet (90cm to 250cm). It can handle taller measurements for comparing with objects or very tall individuals."
+      question: "What&apos;s the maximum height I can enter?",
+      answer: "There&apos;s no strict maximum height limit, but the tool is optimized for human heights typically ranging from 3 feet to 8 feet (90cm to 250cm). It can handle taller measurements for comparing with objects or very tall individuals."
     },
     {
       question: "Can I change the colors of the silhouettes?",
@@ -64,7 +64,7 @@ export default function FAQPage() {
     },
     {
       question: "How do I delete a person from my comparison?",
-      answer: "Click on a silhouette to select it, then click the edit button. In the editing panel, you'll find a delete button at the bottom. You can also use the 'Clear All' button to remove everyone at once."
+      answer: "Click on a silhouette to select it, then click the edit button. In the editing panel, you&apos;ll find a delete button at the bottom. You can also use the &apos;Clear All&apos; button to remove everyone at once."
     }
   ];
 
@@ -77,7 +77,7 @@ export default function FAQPage() {
       <div className="prose prose-lg max-w-none">
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
           Find answers to the most common questions about our height comparison tool. 
-          If you can't find what you're looking for, feel free to{' '}
+          If you can&apos;t find what you&apos;re looking for, feel free to{' '}
           <a href="/contact" className="text-blue-600 hover:underline">contact us</a>.
         </p>
 
@@ -99,7 +99,7 @@ export default function FAQPage() {
             Still Have Questions?
           </h2>
           <p className="text-gray-700 dark:text-gray-300 mb-4">
-            If you couldn't find the answer you were looking for, we're here to help! 
+            If you couldn&apos;t find the answer you were looking for, we&apos;re here to help! 
             Our support team is ready to assist you with any questions about the height comparison tool.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">

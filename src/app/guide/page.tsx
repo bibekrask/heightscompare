@@ -48,12 +48,12 @@ export default function GuidePage() {
             Step 1: Adding Your First Person
           </h3>
           <ol className="list-decimal ml-6 space-y-3 mb-6">
-            <li>Look for the "Add Person" section in the sidebar (on mobile, it's in the left column)</li>
-            <li>Choose the gender by clicking "Male" or "Female"</li>
+            <li>Look for the &quot;Add Person&quot; section in the sidebar (on mobile, it&apos;s in the left column)</li>
+            <li>Choose the gender by clicking &quot;Male&quot; or &quot;Female&quot;</li>
             <li>Enter a name (optional but helpful for identification)</li>
             <li>Input the height using either feet/inches or centimeters</li>
             <li>Select a color to distinguish this person</li>
-            <li>Click "Add Person" to create the silhouette</li>
+            <li>Click &quot;Add Person&quot; to create the silhouette</li>
           </ol>
 
           <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
@@ -119,7 +119,7 @@ export default function GuidePage() {
             <li>Click the edit button (pencil icon) in the people list</li>
             <li>Modify name, height, gender, or color as needed</li>
             <li>Use vertical adjustment controls to align feet to ground level</li>
-            <li>Click "Done Editing" when finished</li>
+            <li>Click &quot;Done Editing&quot; when finished</li>
           </ol>
 
           <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
@@ -129,7 +129,7 @@ export default function GuidePage() {
             For more personalized comparisons, you can upload custom images:
           </p>
           <ul className="list-disc ml-6 space-y-2 mb-6">
-            <li>Click "Choose Image" in the add person form</li>
+            <li>Click &quot;Choose Image&quot; in the add person form</li>
             <li>Select a photo from your device</li>
             <li>The image will be scaled according to the height you specify</li>
             <li>Works best with full-body photos</li>
@@ -189,7 +189,7 @@ export default function GuidePage() {
               </h3>
               <ul className="list-disc ml-6 space-y-2">
                 <li>Comparisons are automatically saved in your browser</li>
-                <li>Use the "Share" button to create shareable links</li>
+                <li>Use the &quot;Share&quot; button to create shareable links</li>
                 <li>Take screenshots for social media sharing</li>
                 <li>Clear all to start fresh comparisons</li>
               </ul>
@@ -233,8 +233,8 @@ export default function GuidePage() {
             Need More Help?
           </h2>
           <p className="text-gray-700 dark:text-gray-300 mb-4">
-            If you're still having trouble or have specific questions about using the height comparison tool, 
-            we're here to help!
+            If you&apos;re still having trouble or have specific questions about using the height comparison tool, 
+            we&apos;re here to help!
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a 

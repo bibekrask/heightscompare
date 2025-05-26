@@ -26,7 +26,7 @@ export default function ContactPage() {
       
       <div className="prose prose-lg max-w-none">
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
-          We'd love to hear from you! Whether you have questions, feedback, or need help with our 
+          We&apos;d love to hear from you! Whether you have questions, feedback, or need help with our 
           height comparison tool, our team is here to assist you.
         </p>
 
@@ -97,7 +97,7 @@ export default function ContactPage() {
               <li>A clear description of your question or issue</li>
               <li>Your device type (smartphone, tablet, desktop)</li>
               <li>Your browser name and version</li>
-              <li>Steps to reproduce any problems you're experiencing</li>
+              <li>Steps to reproduce any problems you&apos;re experiencing</li>
               <li>Screenshots if applicable</li>
             </ul>
           </div>
