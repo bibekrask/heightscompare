@@ -28,11 +28,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Height Comparison Tool | Compare Heights Visually",
   description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
-  keywords: "height comparison, height calculator, compare heights, height visualization, height chart, height converter, cm to feet, height measurement",
+  keywords: "height comparison tool, height calculator, compare heights visually, height chart maker, celebrity height comparison, height difference calculator, cm to feet converter, height visualization tool, online height comparer, height measurement tool, visual height comparison, height chart generator",
   authors: [{ name: "HeightsCompare.com" }],
   creator: "HeightsCompare.com",
   publisher: "HeightsCompare.com",
   robots: "index, follow",
+  alternates: {
+    canonical: 'https://www.heightscompare.com',
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -40,16 +43,31 @@ export const metadata: Metadata = {
     title: "Height Comparison Tool | Compare Heights Visually",
     description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
     siteName: "HeightsCompare.com",
+    images: [
+      {
+        url: 'https://www.heightscompare.com/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Height Comparison Tool - Compare Heights Visually',
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Height Comparison Tool | Compare Heights Visually",
     description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
     creator: "@heightcompare",
+    images: ['https://www.heightscompare.com/og-image.png'],
   },
   viewport: "width=device-width, initial-scale=1",
   verification: {
     google: "google-site-verification=jbdSDSzuQyDBOUwF5EpcDVKguxLKoQrqIqNACGhIaCU",
+  },
+  other: {
+    'theme-color': '#ef4444',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
+    'format-detection': 'telephone=no',
   },
 };
 
