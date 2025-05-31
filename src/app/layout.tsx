@@ -78,6 +78,8 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
     'format-detection': 'telephone=no',
+    'mobile-web-app-capable': 'yes',
+    'viewport': 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
   },
 };
 
@@ -95,6 +97,34 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <JsonLd />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Prevent Web3 wallet injection errors
+              (function() {
+                if (typeof window !== 'undefined') {
+                  // Override console.error to filter Web3 errors
+                  const originalConsoleError = console.error;
+                  console.error = function(...args) {
+                    const message = args.join(' ');
+                    if (message.includes('ethereum') || message.includes('selectedAddress') || message.includes('web3')) {
+                      return; // Suppress Web3 errors
+                    }
+                    originalConsoleError.apply(console, args);
+                  };
+                  
+                  // Early error handler
+                  window.addEventListener('error', function(e) {
+                    if (e.message && (e.message.includes('ethereum') || e.message.includes('selectedAddress') || e.message.includes('web3'))) {
+                      e.preventDefault();
+                      return false;
+                    }
+                  });
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body
         className={`${inter.variable} ${poppins.variable} ${jetbrainsMono.variable} font-poppins antialiased min-h-screen flex flex-col`}

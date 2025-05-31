@@ -1,5 +1,57 @@
 import { CM_PER_INCH, INCHES_PER_FOOT, MAJOR_INTERVALS, EPSILON } from '@/constants';
 
+// Compress image data URL to reduce storage size
+export const compressImageDataUrl = (dataUrl: string, quality: number = 0.7, maxWidth: number = 800): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = document.createElement('img');
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        resolve(dataUrl); // Return original if compression fails
+        return;
+      }
+      
+      // Calculate new dimensions while maintaining aspect ratio
+      const aspectRatio = img.width / img.height;
+      let newWidth = img.width;
+      let newHeight = img.height;
+      
+      if (newWidth > maxWidth) {
+        newWidth = maxWidth;
+        newHeight = newWidth / aspectRatio;
+      }
+      
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      // Draw and compress the image
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+      
+      // Convert to compressed format using toBlob callback
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(dataUrl);
+          reader.readAsDataURL(blob);
+        } else {
+          // Fallback to canvas.toDataURL if toBlob fails
+          try {
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          } catch (error) {
+            console.warn('Image compression failed:', error);
+            resolve(dataUrl);
+          }
+        }
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(dataUrl); // Return original if loading fails
+    img.src = dataUrl;
+  });
+};
+
 // Process uploaded image file to get data URL and aspect ratio
 export const processImageFile = async (file: File): Promise<{ dataUrl: string, aspectRatio: number }> => {
   return new Promise((resolve, reject) => {
