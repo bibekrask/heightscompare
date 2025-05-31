@@ -64,3 +64,30 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Custom horizontal bounce animations for scroll arrows */
+@keyframes bounce-x-left {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes bounce-x-right {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+.animate-bounce-x-left {
+  animation: bounce-x-left 2s ease-in-out infinite;
+}
+
+.animate-bounce-x-right {
+  animation: bounce-x-right 2s ease-in-out infinite;
+}

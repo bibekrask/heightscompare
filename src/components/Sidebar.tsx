@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import PersonForm from '@/components/PersonForm';
+import ImageForm from '@/components/ImageForm';
 import { SidebarProps } from '@/types';
 import { COLOR_OPTIONS, CM_PER_INCH, INCHES_PER_FOOT } from '@/constants';
 import { cmToFtIn } from '@/utils';
@@ -19,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   majorStep,
   className 
 }) => {
-  const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'fictional' | 'objects' | 'buildings' | 'animals' | 'pokemon' | 'addImage'>('add');
+  const [activeTab, setActiveTab] = useState<'add' | 'celebrities' | 'fictional' | 'objects' | 'buildings' | 'animals' | 'addImage'>('add');
   const [localEditingId, setLocalEditingId] = useState<string | null>(null);
   const [editingHeightUnit, setEditingHeightUnit] = useState<'ft' | 'cm'>('ft');
   const sidebarContentRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,46 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   // Action bar at the top of the sidebar with horizontal scrollable tabs
   const renderActionBar = () => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const checkScrollability = () => {
+      if (scrollContainerRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+      }
+    };
+
+    const handleScrollLeft = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollBy({
+          left: -120,
+          behavior: 'smooth'
+        });
+        setTimeout(checkScrollability, 300);
+      }
+    };
+
+    const handleScrollRight = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollBy({
+          left: 120,
+          behavior: 'smooth'
+        });
+        setTimeout(checkScrollability, 300);
+      }
+    };
+
+    // Check scrollability on mount and when tabs change
+    useEffect(() => {
+      checkScrollability();
+      const handleResize = () => checkScrollability();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const entityTabs = [
       {
         id: 'add',
@@ -122,6 +163,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        )
+      },
+      {
+        id: 'addImage',
+        label: 'Add Image',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z" />
           </svg>
         )
       },
@@ -135,15 +185,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         )
       },
       {
-        id: 'fictional',
-        label: 'Fictional',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M10.5 3L12 2l1.5 1h3l.5 1.5v3L16 10H8l-1-2.5v-3L7.5 3h3z" />
-          </svg>
-        )
-      },
-      {
         id: 'objects',
         label: 'Objects',
         icon: (
@@ -153,11 +194,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         )
       },
       {
-        id: 'buildings',
-        label: 'Buildings',
+        id: 'fictional',
+        label: 'Fictional',
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M10.5 3L12 2l1.5 1h3l.5 1.5v3L16 10H8l-1-2.5v-3L7.5 3h3z" />
           </svg>
         )
       },
@@ -171,28 +212,23 @@ const Sidebar: React.FC<SidebarProps> = ({
         )
       },
       {
-        id: 'pokemon',
-        label: 'Pokemon',
+        id: 'buildings',
+        label: 'Buildings',
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-        )
-      },
-      {
-        id: 'addImage',
-        label: 'Add Image',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         )
       }
     ];
 
     return (
-      <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="flex overflow-x-auto scrollbar-hide py-1">
+      <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative">
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto scrollbar-hide py-1 relative"
+          onScroll={checkScrollability}
+        >
           {entityTabs.map((tab) => (
             <button
               key={tab.id}
@@ -211,6 +247,36 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
           ))}
         </div>
+        
+        {/* Left scroll indicator - only visible when can scroll left */}
+        {canScrollLeft && (
+          <button 
+            onClick={handleScrollLeft}
+            className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-red-500 via-red-400 to-transparent hover:from-red-600 hover:via-red-500 dark:from-red-600 dark:via-red-500 dark:hover:from-red-700 dark:hover:via-red-600 flex items-center justify-start pl-1 transition-all duration-200 cursor-pointer group"
+            title="Scroll left to see previous categories"
+          >
+            <div className="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white drop-shadow-lg group-hover:scale-110 transition-all duration-200 animate-bounce-x-left" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+              </svg>
+            </div>
+          </button>
+        )}
+        
+        {/* Right scroll indicator - only visible when can scroll right */}
+        {canScrollRight && (
+          <button 
+            onClick={handleScrollRight}
+            className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-red-500 via-red-400 to-transparent hover:from-red-600 hover:via-red-500 dark:from-red-600 dark:via-red-500 dark:hover:from-red-700 dark:hover:via-red-600 flex items-center justify-end pr-1 transition-all duration-200 cursor-pointer group"
+            title="Scroll right to see more categories"
+          >
+            <div className="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white drop-shadow-lg group-hover:scale-110 transition-all duration-200 animate-bounce-x-right" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+              </svg>
+            </div>
+          </button>
+        )}
       </div>
     );
   };
@@ -541,32 +607,62 @@ const Sidebar: React.FC<SidebarProps> = ({
           </>
         )}
         
-        {activeTab === 'celebrities' && renderComingSoon('Celebrities', 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z')}
-        
-        {activeTab === 'fictional' && renderComingSoon('Fictional Characters', 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M10.5 3L12 2l1.5 1h3l.5 1.5v3L16 10H8l-1-2.5v-3L7.5 3h3z')}
-        
-        {activeTab === 'objects' && renderComingSoon('Objects', 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4')}
-        
-        {activeTab === 'buildings' && renderComingSoon('Buildings', 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4')}
-        
-        {activeTab === 'animals' && renderComingSoon('Animals', 'M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z')}
-        
-        {activeTab === 'pokemon' && renderComingSoon('Pokemon', 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z')}
-        
         {activeTab === 'addImage' && (
-          <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-            <div className="mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Image" />
             </div>
-            <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Custom Image Upload</h3>
-            <p className="text-xs">Upload your own images for comparison. Feature coming soon.</p>
-          </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'celebrities' && (
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Celebrity" />
+            </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'objects' && (
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Object" />
+            </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'fictional' && (
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Fictional Character" />
+            </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'animals' && (
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Animal" />
+            </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
+        )}
+        
+        {activeTab === 'buildings' && (
+          <>
+            <div className="p-1.5 md:p-4">
+              <ImageForm onSubmit={onAdd} buttonText="Add Building" />
+            </div>
+            {images.length > 0 && renderSilhouetteList()}
+          </>
         )}
       </div>
     </div>
   );
 };
 
-export default Sidebar; 
+export default Sidebar;
