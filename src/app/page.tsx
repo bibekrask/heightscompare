@@ -6,7 +6,6 @@ import Sidebar from '@/components/Sidebar';
 import ComparerControls from '@/components/ComparerControls';
 import SEOContent from '@/components/SEOContent';
 import ImageComparer from '@/components/ImageComparer';
-import JsonLd from '@/components/JsonLd';
 import { ManagedImage } from '@/types';
 import { MAX_IMAGES } from '@/constants';
 import { compressImageDataUrl } from '@/utils';
@@ -73,10 +72,10 @@ export default function Home() {
       };
 
       // Protect window.ethereum access
-      if (typeof (window as any).ethereum !== 'undefined') {
+      if (typeof (window as typeof window & { ethereum?: unknown }).ethereum !== 'undefined') {
         try {
           // Wrap potential problematic properties
-          const originalEthereum = (window as any).ethereum;
+          const originalEthereum = (window as typeof window & { ethereum?: unknown }).ethereum;
           Object.defineProperty(window, 'ethereum', {
             get: function() {
               try {
@@ -215,7 +214,7 @@ export default function Home() {
     try {
       // Estimate current localStorage usage
       let totalSize = 0;
-      for (let key in localStorage) {
+      for (const key in localStorage) {
         if (localStorage.hasOwnProperty(key)) {
           totalSize += localStorage[key].length + key.length;
         }

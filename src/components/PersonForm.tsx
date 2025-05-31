@@ -56,37 +56,35 @@ const PersonForm: React.FC<ExtendedPersonFormProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Stable reference for initial form data
-  const defaultFormData = {
-    name: '', 
-    heightCm: 0,
-    gender: 'male' as const,
-    color: COLOR_OPTIONS[0]
-  };
-  
-  // Update form data when editing item changes
+  // Set default formdata based on editing state
   useEffect(() => {
     if (editingItem) {
       setFormData({
-        name: editingItem.name || '',
+        name: editingItem.name,
         heightCm: editingItem.heightCm,
-        gender: editingItem.gender,
+        gender: editingItem.gender || 'male',
         color: editingItem.color,
         customImage: undefined,
-        croppedImageData: editingItem.src && !editingItem.src.includes('.svg') && !editingItem.src.startsWith('/images/') ? editingItem.src : undefined,
+        croppedImageData: editingItem.src?.startsWith('data:') ? editingItem.src : undefined,
         aspectRatio: editingItem.aspectRatio
       });
-      // Set uploaded image preview if it's a custom image
-      if (editingItem.src && !editingItem.src.includes('.svg') && !editingItem.src.startsWith('/images/')) {
+      
+      // If the editing item has a custom image, set it as the preview
+      if (editingItem.src?.startsWith('data:')) {
         setUploadedImagePreview(editingItem.src);
       } else {
         setUploadedImagePreview(null);
       }
     } else {
-      setFormData(defaultFormData);
+      setFormData({
+        name: '',
+        heightCm: initialData?.heightCm || 0,
+        gender: initialData?.gender || 'male',
+        color: initialData?.color || COLOR_OPTIONS[0]
+      });
       setUploadedImagePreview(null);
     }
-  }, [editingItem]); // Remove initialData from dependency array
+  }, [editingItem, initialData]);
 
   // Handle clicking outside to exit edit mode
   useEffect(() => {
