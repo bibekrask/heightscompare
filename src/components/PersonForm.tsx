@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import ColorPicker from '@/components/ColorPicker';
-import { PersonFormProps, PersonFormData, ManagedImage } from '@/types';
+import { PersonFormProps, PersonFormData } from '@/types';
 import { 
   COLOR_OPTIONS, 
   CM_PER_INCH, 

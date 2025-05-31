@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Header from '@/components/Header';
-import PersonForm from '@/components/PersonForm';
 import Sidebar from '@/components/Sidebar';
 import ComparerControls from '@/components/ComparerControls';
 import SEOContent from '@/components/SEOContent';

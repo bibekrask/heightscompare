@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import PersonForm from '@/components/PersonForm';
 import ImageForm from '@/components/ImageForm';
 import { SidebarProps } from '@/types';
 import { COLOR_OPTIONS, CM_PER_INCH, INCHES_PER_FOOT } from '@/constants';
-import { cmToFtIn } from '@/utils';
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   images, 
@@ -26,6 +24,47 @@ const Sidebar: React.FC<SidebarProps> = ({
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const desktopSidebarContentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+  
+  // Scroll indicator state and refs (moved from renderActionBar)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollability = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: -120,
+        behavior: 'smooth'
+      });
+      setTimeout(checkScrollability, 300);
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: 120,
+        behavior: 'smooth'
+      });
+      setTimeout(checkScrollability, 300);
+    }
+  };
+
+  // Check scrollability on mount and when tabs change
+  useEffect(() => {
+    checkScrollability();
+    const handleResize = () => checkScrollability();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Sync parent editingId with local state
   useEffect(() => {
@@ -116,46 +155,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   // Action bar at the top of the sidebar with horizontal scrollable tabs
   const renderActionBar = () => {
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(true);
-
-    const checkScrollability = () => {
-      if (scrollContainerRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-      }
-    };
-
-    const handleScrollLeft = () => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollBy({
-          left: -120,
-          behavior: 'smooth'
-        });
-        setTimeout(checkScrollability, 300);
-      }
-    };
-
-    const handleScrollRight = () => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollBy({
-          left: 120,
-          behavior: 'smooth'
-        });
-        setTimeout(checkScrollability, 300);
-      }
-    };
-
-    // Check scrollability on mount and when tabs change
-    useEffect(() => {
-      checkScrollability();
-      const handleResize = () => checkScrollability();
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
     const entityTabs = [
       {
         id: 'add',
@@ -237,7 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'add' | 'celebrities' | 'fictional' | 'objects' | 'buildings' | 'animals' | 'addImage')}
               data-tab={tab.id}
             >
               <div className="flex flex-col items-center justify-center min-w-max">
@@ -577,19 +576,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
     );
   };
-  
-  // Render coming soon content for inactive tabs
-  const renderComingSoon = (title: string, iconPath: string) => (
-    <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-      <div className="mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d={iconPath} />
-        </svg>
-      </div>
-      <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">{title} Coming Soon</h3>
-      <p className="text-xs">{title.toLowerCase()} heights will be available here soon.</p>
-    </div>
-  );
   
   return (
     <div className={`bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden sidebar-tabs ${className}`}>

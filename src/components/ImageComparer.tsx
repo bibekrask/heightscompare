@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useLayoutEffect, useCallback, useEffect } from 'react';
-import { ManagedImage, ImageComparerProps } from '@/types';
+import { ImageComparerProps } from '@/types';
 import { 
   SCALE_TOP_FACTOR,
   MAJOR_INTERVALS,

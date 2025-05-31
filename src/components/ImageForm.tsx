@@ -5,7 +5,7 @@ import Image from 'next/image';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import ColorPicker from '@/components/ColorPicker';
-import { PersonFormProps, PersonFormData, ManagedImage } from '@/types';
+import { ManagedImage } from '@/types';
 import { 
   COLOR_OPTIONS, 
   CM_PER_INCH
@@ -457,6 +457,7 @@ const ImageForm: React.FC<ImageFormProps> = ({
                   src={uploadedImageSrc}
                   style={{ maxHeight: '400px', maxWidth: '100%' }}
                   onLoad={onImageLoad}
+                  suppressHydrationWarning={true}
                 />
               </ReactCrop>
             </div>
