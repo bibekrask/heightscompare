@@ -56,35 +56,33 @@ const PersonForm: React.FC<ExtendedPersonFormProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Set default formdata based on editing state
+  // Stable reference for initial form data
+  const defaultFormData = useMemo(() => ({
+    name: '', 
+    heightCm: 0,
+    gender: 'male' as const,
+    color: COLOR_OPTIONS[0]
+  }), []);
+  
+  // Update form data when editing item changes
   useEffect(() => {
     if (editingItem) {
       setFormData({
         name: editingItem.name,
         heightCm: editingItem.heightCm,
         gender: editingItem.gender || 'male',
-        color: editingItem.color,
+        color: editingItem.color || COLOR_OPTIONS[0],
         customImage: undefined,
         croppedImageData: editingItem.src?.startsWith('data:') ? editingItem.src : undefined,
         aspectRatio: editingItem.aspectRatio
       });
-      
-      // If the editing item has a custom image, set it as the preview
-      if (editingItem.src?.startsWith('data:')) {
-        setUploadedImagePreview(editingItem.src);
-      } else {
-        setUploadedImagePreview(null);
-      }
+      // Set uploaded image preview for custom images
+      setUploadedImagePreview(editingItem.src?.startsWith('data:') ? editingItem.src : null);
     } else {
-      setFormData({
-        name: '',
-        heightCm: initialData?.heightCm || 0,
-        gender: initialData?.gender || 'male',
-        color: initialData?.color || COLOR_OPTIONS[0]
-      });
+      setFormData(defaultFormData);
       setUploadedImagePreview(null);
     }
-  }, [editingItem, initialData]);
+  }, [editingItem, defaultFormData]);
 
   // Handle clicking outside to exit edit mode
   useEffect(() => {

@@ -103,31 +103,29 @@ const ImageForm: React.FC<ImageFormProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Set default formdata based on editing state
+  // Stable reference for initial form data
+  const defaultFormData = useMemo(() => ({
+    name: '', 
+    heightCm: 0,
+    color: COLOR_OPTIONS[0]
+  }), []);
+  
+  // Update form data when editing item changes
   useEffect(() => {
     if (editingItem) {
       setFormData({
         name: editingItem.name,
         heightCm: editingItem.heightCm,
-        color: editingItem.color,
-        aspectRatio: editingItem.aspectRatio,
-        croppedImageData: editingItem.src?.startsWith('data:') ? editingItem.src : undefined
+        color: editingItem.color || COLOR_OPTIONS[0],
+        croppedImageData: editingItem.src?.startsWith('data:') ? editingItem.src : undefined,
+        aspectRatio: editingItem.aspectRatio
       });
-      
-      // If the editing item has a custom image, set it as the preview
-      if (editingItem.src?.startsWith('data:')) {
-        setUploadedImageSrc(editingItem.src);
-      }
+      setUploadedImageSrc(editingItem.src?.startsWith('data:') ? editingItem.src : null);
     } else {
-      setFormData({
-        name: '',
-        heightCm: initialData?.heightCm || 0,
-        color: initialData?.color || COLOR_OPTIONS[0],
-        aspectRatio: initialData?.aspectRatio
-      });
+      setFormData(defaultFormData);
       setUploadedImageSrc(null);
     }
-  }, [editingItem, initialData]);
+  }, [editingItem, defaultFormData]); // Add defaultFormData to dependency array
 
   // Handle clicking outside to exit edit mode
   useEffect(() => {

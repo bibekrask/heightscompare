@@ -72,10 +72,10 @@ export default function Home() {
       };
 
       // Protect window.ethereum access
-      if (typeof (window as typeof window & { ethereum?: unknown }).ethereum !== 'undefined') {
+      if (typeof (window as Window & { ethereum?: unknown }).ethereum !== 'undefined') {
         try {
           // Wrap potential problematic properties
-          const originalEthereum = (window as typeof window & { ethereum?: unknown }).ethereum;
+          const originalEthereum = (window as Window & { ethereum?: unknown }).ethereum;
           Object.defineProperty(window, 'ethereum', {
             get: function() {
               try {
