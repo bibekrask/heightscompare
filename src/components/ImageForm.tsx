@@ -148,6 +148,9 @@ const ImageForm: React.FC<ImageFormProps> = ({
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.imageSmoothingQuality = 'high';
 
+    // Clear the canvas with transparency for PNG images
+    ctx.clearRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio);
+
     ctx.drawImage(
       image,
       crop.x * scaleX,
@@ -161,6 +164,15 @@ const ImageForm: React.FC<ImageFormProps> = ({
     );
 
     return new Promise((resolve) => {
+      // Detect if the original file is PNG or has transparency
+      const isPNG = fileName.toLowerCase().endsWith('.png') || 
+                   fileName.toLowerCase().includes('png') ||
+                   formData.imageFile?.type === 'image/png';
+      
+      // Use PNG format to preserve transparency, fallback to JPEG for other formats
+      const outputFormat = isPNG ? 'image/png' : 'image/jpeg';
+      const quality = isPNG ? undefined : 0.9; // PNG doesn't use quality parameter
+
       canvas.toBlob((blob) => {
         if (!blob) {
           resolve({ dataUrl: '', aspectRatio: 1 });
@@ -175,9 +187,9 @@ const ImageForm: React.FC<ImageFormProps> = ({
           });
         };
         reader.readAsDataURL(blob);
-      }, 'image/jpeg', 0.9);
+      }, outputFormat, quality);
     });
-  }, []);
+  }, [formData.imageFile]);
 
   // Apply crop and close cropper
   const handleApplyCrop = useCallback(async () => {
