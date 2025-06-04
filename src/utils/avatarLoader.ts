@@ -35,7 +35,7 @@ export const loadAvatars = async (): Promise<AvatarInfo[]> => {
           src: `/avatars/${filename}`
         })));
       }
-    } catch (error) {
+    } catch {
       // If API route doesn't exist, fall back to empty array
       console.log('Avatar API not available, avatars folder may be empty');
     }

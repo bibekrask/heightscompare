@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { loadAvatars, AvatarInfo } from '@/utils/avatarLoader';
 import { ManagedImage } from '@/types';
-import { MALE_ASPECT_RATIO, FEMALE_ASPECT_RATIO, COLOR_OPTIONS } from '@/constants';
+import { MALE_ASPECT_RATIO, COLOR_OPTIONS } from '@/constants';
 
 interface AvatarPickerProps {
   onSelectAvatar: (avatarData: Omit<ManagedImage, 'id'>) => void;
