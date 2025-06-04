@@ -5,6 +5,7 @@ import Image from 'next/image';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import ColorPicker from '@/components/ColorPicker';
+import AvatarPicker from '@/components/AvatarPicker';
 import { PersonFormProps, PersonFormData, ManagedImage } from '@/types';
 import { 
   COLOR_OPTIONS, 
@@ -622,6 +623,28 @@ const PersonForm: React.FC<ExtendedPersonFormProps> = ({
           onChange={handleColorChange} 
         />
       </div>
+
+      {/* Avatar Picker - available in both create and edit modes */}
+      {onSubmit && (
+        <div>
+          <AvatarPicker 
+            onSelectAvatar={(avatarData) => {
+              if (editingItem && onUpdate) {
+                // When editing, update the existing item with new avatar data
+                onUpdate(editingItem.id, {
+                  src: avatarData.src,
+                  aspectRatio: avatarData.aspectRatio,
+                  name: avatarData.name // Update name if it was auto-generated from avatar
+                });
+              } else {
+                // When creating new, use the normal submit flow
+                onSubmit(avatarData);
+              }
+            }}
+            className=""
+          />
+        </div>
+      )}
 
       {/* Vertical Adjustment - show always */}
       <div>

@@ -171,4 +171,7 @@ export const generateHorizontalMarks = (scaleTopCm: number, scaleBottomCm: numbe
 
   majorMarks.sort((a, b) => a.valueCm - b.valueCm);
   return majorMarks;
-}; 
+};
+
+// Avatar utilities
+export * from './avatarLoader'; 
