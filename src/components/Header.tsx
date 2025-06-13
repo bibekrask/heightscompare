@@ -27,6 +27,7 @@ const Header = () => {
           <nav className="hidden md:flex space-x-6 text-base font-medium">
             <Link href="/" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">Home</Link>
             <Link href="/about" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">About</Link>
+            <Link href="/blog" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">Blog</Link>
             <Link href="/contact" className="text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer">Contact</Link>
           </nav>
         </div>
@@ -43,6 +44,7 @@ const Header = () => {
           <div className="flex flex-col p-4 space-y-1">
             <Link href="/" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Home</Link>
             <Link href="/about" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">About</Link>
+            <Link href="/blog" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Blog</Link>
             <Link href="/contact" className="py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Contact</Link>
             <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
             <button className="text-left py-3 hover:bg-gray-200 dark:hover:bg-gray-700 px-4 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 transition-colors">Login</button>

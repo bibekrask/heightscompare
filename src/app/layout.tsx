@@ -26,9 +26,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Height Comparison Tool | Compare Heights Visually",
-  description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
-  keywords: "height comparison tool, height calculator, compare heights visually, height chart maker, celebrity height comparison, height difference calculator, cm to feet converter, height visualization tool, online height comparer, height measurement tool, visual height comparison, height chart generator",
+  title: "Height Comparison Tool – Compare Heights Online, Celebrities & More",
+  description: "Visually compare heights of people, celebrities, and objects. Use our free online height comparison chart, difference calculator, and conversion tool. No registration needed.",
+  keywords: "height comparison, height chart, compare heights, celebrity height, height difference calculator, height conversion, online height tool",
   authors: [{ name: "HeightsCompare.com" }],
   creator: "HeightsCompare.com",
   publisher: "HeightsCompare.com",
@@ -51,8 +51,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://www.heightscompare.com",
-    title: "Height Comparison Tool | Compare Heights Visually",
-    description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
+    title: "Height Comparison Tool – Compare Heights Online, Celebrities & More",
+    description: "Visually compare heights of people, celebrities, and objects. Use our free online height comparison chart, difference calculator, and conversion tool.",
     siteName: "HeightsCompare.com",
     images: [
       {
@@ -65,8 +65,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Height Comparison Tool | Compare Heights Visually",
-    description: "Free online height comparison tool. Compare heights of people, celebrities, and objects visually. Easy-to-use interface with accurate measurements in cm and feet/inches.",
+    title: "Height Comparison Tool – Compare Heights Online, Celebrities & More",
+    description: "Visually compare heights of people, celebrities, and objects. Use our free online height comparison chart, difference calculator, and conversion tool.",
     creator: "@heightcompare",
     images: ['https://www.heightscompare.com/og-image.png'],
   },

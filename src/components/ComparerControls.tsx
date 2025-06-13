@@ -42,7 +42,7 @@ const ComparerControls: React.FC<ComparerControlsProps> = ({
     </div>
     <div className="flex-grow text-center text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 px-1 md:px-2">
       <span className="md:hidden">HeightsCompare.com</span>
-      <span className="hidden md:inline">HeightsComparison.com</span>
+      <span className="hidden md:inline">HeightsCompare.com</span>
     </div>
     <div className="flex items-center space-x-0.5 md:space-x-1">
       <button 
